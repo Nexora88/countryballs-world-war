@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Countryballs: Sovereign</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="screen active">
+      <div class="loading-content">
+        <div class="logo">COUNTRYBALLS</div>
+        <div class="subtitle">SOVEREIGN</div>
+        <div class="loading-bar">
+          <div class="loading-progress" id="loading-progress"></div>
+        </div>
+        <div class="loading-text" id="loading-text">Sistemler yükleniyor...</div>
+      </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="screen">
+      <div class="menu-content">
+        <div class="menu-logo">
+          <div class="logo">COUNTRYBALLS</div>
+          <div class="subtitle">SOVEREIGN</div>
+        </div>
+        <p class="tagline">Kişilik odaklı büyük strateji</p>
+        <div class="menu-buttons">
+          <button class="btn primary" id="btn-new-game">Yeni Oyun</button>
+          <button class="btn secondary" id="btn-continue" disabled>Devam Et</button>
+          <button class="btn secondary" id="btn-settings">Ayarlar</button>
+        </div>
+        <div class="version">v0.1.0 — Foundation</div>
+      </div>
+    </div>
+
+    <!-- Country Selection -->
+    <div id="country-select" class="screen">
+      <div class="select-header">
+        <h1>Ülkeni Seç</h1>
+        <p>Her ülkenin kendine has bir karakteri vardır</p>
+      </div>
+      <div class="country-grid" id="country-grid">
+        <!-- Countries will be injected here -->
+      </div>
+      <div class="select-footer">
+        <button class="btn secondary" id="btn-back-menu">Geri</button>
+        <button class="btn primary" id="btn-start-game" disabled>Başla</button>
+      </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen">
+      <canvas id="game-canvas"></canvas>
+
+      <!-- Top Bar -->
+      <div id="top-bar">
+        <div class="resource" title="Altın">
+          <span class="icon">◈</span>
+          <span id="res-gold">0</span>
+        </div>
+        <div class="resource" title="Asker">
+          <span class="icon">⚔</span>
+          <span id="res-manpower">0</span>
+        </div>
+        <div class="resource" title="İstikrar">
+          <span class="icon">⚖</span>
+          <span id="res-stability">100%</span>
+        </div>
+        <div class="resource" title="Teknoloji">
+          <span class="icon">⚙</span>
+          <span id="res-tech">1</span>
+        </div>
+        <div class="spacer"></div>
+        <div class="date" id="game-date">1 Ocak 2026</div>
+        <div class="speed-controls">
+          <button class="speed-btn" data-speed="0">❚❚</button>
+          <button class="speed-btn active" data-speed="1">▶</button>
+          <button class="speed-btn" data-speed="2">▶▶</button>
+          <button class="speed-btn" data-speed="3">▶▶▶</button>
+        </div>
+      </div>
+
+      <!-- Side Panel -->
+      <div id="side-panel" class="hidden">
+        <div class="panel-header">
+          <div class="country-ball-preview" id="panel-ball"></div>
+          <div class="panel-title">
+            <h2 id="panel-name">Ülke</h2>
+            <span class="character-tag" id="panel-character">—</span>
+          </div>
+          <button class="close-btn" id="panel-close">×</button>
+        </div>
+        <div class="panel-body">
+          <div class="stat-row">
+            <span>Askeri Güç</span>
+            <div class="bar"><div class="fill" id="stat-military"></div></div>
+          </div>
+          <div class="stat-row">
+            <span>Ekonomi</span>
+            <div class="bar"><div class="fill" id="stat-economy"></div></div>
+          </div>
+          <div class="stat-row">
+            <span>İstikrar</span>
+            <div class="bar"><div class="fill" id="stat-stability"></div></div>
+          </div>
+          <div class="stat-row">
+            <span>Teknoloji</span>
+            <div class="bar"><div class="fill" id="stat-tech"></div></div>
+          </div>
+
+          <div class="panel-section">
+            <h3>Diplomasi</h3>
+            <div class="action-buttons" id="diplomacy-actions">
+              <!-- Dynamic buttons -->
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <h3>Askeri</h3>
+            <div class="action-buttons" id="military-actions">
+              <!-- Dynamic buttons -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Notifications -->
+      <div id="notifications"></div>
+
+      <!-- Event Modal -->
+      <div id="event-modal" class="modal hidden">
+        <div class="modal-content">
+          <h2 id="event-title">Olay</h2>
+          <p id="event-description"></p>
+          <div class="event-choices" id="event-choices"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
