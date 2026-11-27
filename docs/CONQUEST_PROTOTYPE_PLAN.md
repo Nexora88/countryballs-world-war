@@ -79,6 +79,24 @@ References:
 10. Save/load a local single-player game.
 11. Tests for combat, capture, ownership, and AI target legality.
 
+
+## Reference gameplay loop to emulate at a genre level
+
+The public game description and available gameplay guide describe this broad loop:
+- Pick a starting country.
+- Owned regions accumulate troops over time, with a cap.
+- Select an owned region and drag to an eligible neighboring region to launch an attack.
+- The source region commits troops, so it becomes temporarily weaker and needs to be defended.
+- Resolve the incoming force against the target garrison; if the attacker wins, ownership and flag/color change and the captured region begins generating troops for its new controller.
+- Invest in regional troop capacity/production and income, then expand while defending exposed borders.
+
+For our own prototype, use these as genre-level interaction requirements, not a pixel-perfect recreation. We will create original UI, map styling, balance, troop visuals, progression, and extra strategy systems. The first playable map can use country-sized territories; province/state subdivisions can follow once the basic loop is stable.
+
+Reference sources:
+- Poki game description and controls: https://poki.com/tr/g/country-balls-world-war
+- App Store description and drag-to-attack explanation: https://apps.apple.com/us/app/country-balls-world-war/id1641506195
+- Independent gameplay guide: https://newgamewiki.com/guides/country-balls-world-war/
+
 ## Technical design guardrails
 
 - Keep simulation rules independent of rendering.
