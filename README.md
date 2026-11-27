@@ -2,63 +2,70 @@
 
 > Not another clone. A personality-driven grand strategy experience.
 
-**Countryballs: Sovereign** takes the classic Countryballs aesthetic and turns it into a living, reactive world where every nation has a character, internal pressures, and agency.
+**v0.3.0** — Map · Sound · Deep Diplomacy · Victory Conditions
 
 ---
 
-## What makes it different
+## Features
 
-- **National Character System** — Aggressive, Diplomatic, Opportunist, Ideologue, Isolationist. AI decisions are filtered through personality.
-- **Living countries** — Stability, internal crises, economic shocks, cascading alliances.
-- **Real consequences** — Sending an army can drag entire blocs into war. Using nuclear weapons turns the world against you.
-- **Multiple paths** — Military, economic, diplomatic, technological, or nuclear monopoly.
+### Core Identity
+- **National Character System** — Aggressive, Diplomatic, Opportunist, Ideologue, Isolationist
+- Every AI decision filtered through personality
+- Living countries with stability, internal pressure, cascading alliances
 
----
-
-## Current Systems (v0.2)
-
+### Systems
 | System | Status |
 |--------|--------|
-| Country personalities & relations | ✅ |
-| Time & speed control | ✅ |
+| Stylized continent map background | ✅ |
 | Army movement & combat resolution | ✅ |
 | Character-driven AI | ✅ |
 | Economy + upgrades | ✅ |
-| Cascade events (ally join, crises) | ✅ |
-| Nuclear weapons | ✅ |
-| Soft visual feedback & expressions | ✅ |
-| Sound | ⏳ Planned |
-| Deeper province system | ⏳ Later |
+| Cascade events | ✅ |
+| Nuclear weapons (high risk) | ✅ |
+| Procedural sound (Web Audio) | ✅ |
+| Deep diplomacy (alliance, trade, threat, ceasefire) | ✅ |
+| Multiple victory conditions | ✅ |
+| Countryball expressions & feedback | ✅ |
+
+### Victory Paths
+- **Military Domination** — Overwhelm the world in power
+- **Economic Hegemony** — Become the indispensable economy
+- **Diplomatic Unity** — Build a large alliance bloc
+- **Technological Singularity** — Pull far ahead in tech
+- **Nuclear Monopoly** — Remain the sole nuclear power
 
 ---
 
-## How to Play
+## How to Run
 
-1. Open `index.html` in a modern browser  
-   or run a local server: `npx serve .`
-2. Choose a country (each has a different personality).
-3. Click countries to open the side panel.
-4. Invest in military / economy / stability / tech.
-5. Form alliances or declare war and send armies.
-6. Watch the AI act according to their characters.
-7. Nuclear is available only after high tech + heavy investment — and the world will hate you for it.
+```bash
+npx serve .
+```
+
+Or open `index.html` directly (some browsers restrict ES modules from `file://` — prefer a local server).
+
+Then:
+1. Choose a country
+2. Click countries to open the panel
+3. Invest, form alliances, trade, threaten, declare war, send armies
+4. Watch the AI act according to their characters
+5. Nuclear is expensive and the world will hate you for using it
 
 ---
 
 ## Controls
 
-- **Click** a country → open details & actions
-- **Speed buttons** (❚❚ ▶ ▶▶ ▶▶▶) → control time
-- Side panel → upgrades (when viewing yourself), diplomacy & military actions (when viewing others)
+- **Click** country → details & actions
+- **Speed buttons** → pause / normal / fast / very fast
+- Own country panel → upgrades
+- Other country panel → diplomacy + military options
 
 ---
 
 ## Philosophy
 
-We are not trying to make the biggest strategy game.  
-We are trying to make the one that feels the most **alive** and **distinct**.
-
-Countries are characters with agency, not just colored territories.
+Countries are characters with agency, not just colored territories.  
+We prioritize distinctiveness and systemic reactivity over feature count.
 
 ---
 
