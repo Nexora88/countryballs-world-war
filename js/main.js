@@ -2,6 +2,7 @@ import { World } from './core/World.js';
 import { Renderer } from './render/Renderer.js';
 import { COUNTRIES, CHARACTERS } from './data/countries.js';
 import { UPGRADES } from './core/Economy.js';
+import { audio } from './core/Audio.js';
 
 const screens = {
   loading: document.getElementById('loading-screen'),
@@ -15,6 +16,7 @@ let renderer = null;
 let selectedCountryId = null;
 let animationId = null;
 let lastTime = 0;
+let victoryShown = false;
 
 function showScreen(name) {
   Object.values(screens).forEach(s => s.classList.remove('active'));
@@ -25,19 +27,18 @@ async function boot() {
   const progress = document.getElementById('loading-progress');
   const text = document.getElementById('loading-text');
   const steps = [
-    { p: 15, t: 'Ülke verileri yükleniyor...' },
-    { p: 35, t: 'Kişilik sistemleri hazırlanıyor...' },
-    { p: 55, t: 'Savaş ve ordu sistemleri...' },
-    { p: 75, t: 'Ekonomi ve olay motoru...' },
-    { p: 90, t: 'Yapay zeka kişilikleri...' },
+    { p: 20, t: 'Ülke verileri...' },
+    { p: 40, t: 'Harita ve konumlandırma...' },
+    { p: 60, t: 'Savaş & ekonomi sistemleri...' },
+    { p: 80, t: 'Yapay zeka kişilikleri...' },
     { p: 100, t: 'Hazır.' }
   ];
   for (const step of steps) {
     progress.style.width = step.p + '%';
     text.textContent = step.t;
-    await wait(160 + Math.random() * 100);
+    await wait(140 + Math.random() * 80);
   }
-  await wait(250);
+  await wait(200);
   showScreen('menu');
 }
 
@@ -46,11 +47,14 @@ function wait(ms) {
 }
 
 document.getElementById('btn-new-game').addEventListener('click', () => {
+  audio.resume();
+  audio.ui();
   populateCountrySelect();
   showScreen('select');
 });
 
 document.getElementById('btn-back-menu').addEventListener('click', () => {
+  audio.ui();
   showScreen('menu');
 });
 
@@ -71,6 +75,7 @@ function populateCountrySelect() {
       <div class="character" style="color:${char.color}">${char.name}</div>
     `;
     card.addEventListener('click', () => {
+      audio.ui();
       document.querySelectorAll('.country-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       selectedCountryId = data.id;
@@ -82,15 +87,19 @@ function populateCountrySelect() {
 
 document.getElementById('btn-start-game').addEventListener('click', () => {
   if (!selectedCountryId) return;
+  audio.ui();
   startGame(selectedCountryId);
 });
 
 function startGame(playerId) {
   world = new World();
   world.setPlayer(playerId);
+  victoryShown = false;
 
   const canvas = document.getElementById('game-canvas');
   renderer = new Renderer(canvas);
+  // Force resize after screen is visible
+  setTimeout(() => renderer.resize(), 50);
 
   setupGameUI();
   showScreen('game');
@@ -102,30 +111,28 @@ function startGame(playerId) {
 
 function setupGameUI() {
   document.querySelectorAll('.speed-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
+      audio.ui();
       const speed = parseInt(btn.dataset.speed);
       world.setSpeed(speed);
       document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-    });
+    };
   });
 
   const canvas = document.getElementById('game-canvas');
 
-  canvas.addEventListener('mousemove', (e) => {
+  canvas.onmousemove = (e) => {
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const hit = renderer.hitTest(x, y, world);
+    const hit = renderer.hitTest(e.clientX - rect.left, e.clientY - rect.top, world);
     for (const c of world.getAllCountries()) c.hover = false;
     if (hit) hit.hover = true;
-  });
+  };
 
-  canvas.addEventListener('click', (e) => {
+  canvas.onclick = (e) => {
+    audio.resume();
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const hit = renderer.hitTest(x, y, world);
+    const hit = renderer.hitTest(e.clientX - rect.left, e.clientY - rect.top, world);
     for (const c of world.getAllCountries()) c.selected = false;
     if (hit) {
       hit.selected = true;
@@ -133,9 +140,12 @@ function setupGameUI() {
     } else {
       closeSidePanel();
     }
-  });
+  };
 
-  document.getElementById('panel-close').addEventListener('click', closeSidePanel);
+  document.getElementById('panel-close').onclick = () => {
+    audio.ui();
+    closeSidePanel();
+  };
 }
 
 function openSidePanel(country) {
@@ -149,10 +159,10 @@ function openSidePanel(country) {
   const ball = document.getElementById('panel-ball');
   ball.style.background = `linear-gradient(135deg, ${country.flagColors[0]}, ${country.flagColors[1] || country.flagColors[0]})`;
 
-  document.getElementById('stat-military').style.width = country.military + '%';
-  document.getElementById('stat-economy').style.width = country.economy + '%';
-  document.getElementById('stat-stability').style.width = country.stability + '%';
-  document.getElementById('stat-tech').style.width = (country.tech * 8) + '%';
+  document.getElementById('stat-military').style.width = Math.min(100, country.military) + '%';
+  document.getElementById('stat-economy').style.width = Math.min(100, country.economy) + '%';
+  document.getElementById('stat-stability').style.width = Math.min(100, country.stability) + '%';
+  document.getElementById('stat-tech').style.width = Math.min(100, country.tech * 8) + '%';
 
   const player = world.getPlayer();
   const isPlayer = country.isPlayer;
@@ -164,122 +174,155 @@ function openSidePanel(country) {
   diplo.innerHTML = '';
   mili.innerHTML = '';
 
-  // --- Player viewing own country: upgrades ---
   if (isPlayer) {
-    const upgradeTitle = document.createElement('div');
-    upgradeTitle.style.cssText = 'font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em';
-    upgradeTitle.textContent = 'Yatırımlar';
-    diplo.appendChild(upgradeTitle);
-
+    // Upgrades
     for (const key of ['military', 'economy', 'stability', 'tech', 'nuclear']) {
       const up = UPGRADES[key];
       if (key === 'nuclear' && (country.nuclear || country.tech < 7)) continue;
-
       const cost = world.economy.getCost(country, key);
       const can = world.economy.canAfford(country, key);
-
       const btn = document.createElement('button');
       btn.className = 'btn secondary';
       btn.disabled = !can;
       btn.innerHTML = `${up.name} <span style="opacity:0.6;font-size:0.8em">(${cost}◈)</span>`;
       btn.onclick = () => {
         if (world.economy.buyUpgrade(country, key)) {
+          audio.positive();
           notify(`${up.name} tamamlandı.`);
           openSidePanel(country);
         }
       };
       diplo.appendChild(btn);
     }
-
     if (country.nuclear) {
-      const nukeInfo = document.createElement('div');
-      nukeInfo.style.cssText = 'color:var(--warning);font-size:0.85rem;margin-top:8px';
-      nukeInfo.textContent = '☢ Nükleer kapasite mevcut';
-      mili.appendChild(nukeInfo);
+      const info = document.createElement('div');
+      info.style.cssText = 'color:var(--warning);font-size:0.85rem;margin-top:8px';
+      info.textContent = '☢ Nükleer kapasite mevcut';
+      mili.appendChild(info);
     }
     return;
   }
 
-  // --- Viewing other country ---
-  if (player) {
-    // Diplomacy
-    if (!isEnemy && !isAlly) {
-      const allyBtn = document.createElement('button');
-      allyBtn.className = 'btn secondary';
-      allyBtn.textContent = 'İttifak Teklif Et';
-      allyBtn.onclick = () => {
-        const willingness = country.diplomaticWillingness(country.getRelation(player.id));
-        if (Math.random() < willingness + 0.25) {
-          world.formAlliance(player.id, country.id);
-          notify(`${country.name} ittifakı kabul etti!`);
-        } else {
-          notify(`${country.name} teklifi reddetti.`);
-          country.modifyRelation(player.id, -8);
-        }
-        openSidePanel(country);
-      };
-      diplo.appendChild(allyBtn);
-    }
+  // Other country
+  if (!player) return;
 
-    if (isAlly) {
-      const info = document.createElement('div');
-      info.style.cssText = 'color:var(--success);font-size:0.85rem';
-      info.textContent = '✓ Müttefik';
-      diplo.appendChild(info);
-    }
+  // Relation display
+  const rel = country.getRelation(player.id);
+  const relDiv = document.createElement('div');
+  relDiv.style.cssText = 'font-size:0.85rem;margin-bottom:10px;color:var(--text-secondary)';
+  relDiv.textContent = `İlişki: ${rel > 0 ? '+' : ''}${Math.floor(rel)}`;
+  diplo.appendChild(relDiv);
 
-    // Military actions
-    if (!isEnemy) {
-      const warBtn = document.createElement('button');
-      warBtn.className = 'btn secondary';
-      warBtn.style.borderColor = 'var(--danger)';
-      warBtn.style.color = 'var(--danger)';
-      warBtn.textContent = 'Savaş İlan Et + Ordu Gönder';
-      warBtn.onclick = () => {
-        world.declareWar(player.id, country.id);
-        world.combat.sendArmy(player.id, country.id, 0.4);
-        country.expression = 'angry';
-        player.expression = 'angry';
-        notify(`${country.name} ile savaş başladı. Ordu yola çıktı.`);
-        openSidePanel(country);
-      };
-      mili.appendChild(warBtn);
-    } else {
-      const info = document.createElement('div');
-      info.style.cssText = 'color:var(--danger);font-size:0.85rem;margin-bottom:8px';
-      info.textContent = '⚔ Savaş halinde';
-      mili.appendChild(info);
-
-      const sendBtn = document.createElement('button');
-      sendBtn.className = 'btn secondary';
-      sendBtn.textContent = 'Takviye Gönder';
-      sendBtn.onclick = () => {
-        const army = world.combat.sendArmy(player.id, country.id, 0.3);
-        if (army) notify(`Takviye birlik yola çıktı (${Math.floor(army.strength)} güç).`);
-        else notify('Yeterli askeri güç yok.');
-      };
-      mili.appendChild(sendBtn);
-
-      // Nuclear option
-      if (player.nuclear && world.events.canUseNuclear(player)) {
-        const nukeBtn = document.createElement('button');
-        nukeBtn.className = 'btn secondary';
-        nukeBtn.style.borderColor = 'var(--warning)';
-        nukeBtn.style.color = 'var(--warning)';
-        nukeBtn.textContent = '☢ Nükleer Saldırı';
-        nukeBtn.onclick = () => {
-          if (confirm(`${country.name} hedefine nükleer saldırı başlatılsın mı?\n\nBu kararın geri dönüşü yoktur. Dünya tepkisi çok ağır olacaktır.`)) {
-            const res = world.events.launchNuclear(player.id, country.id);
-            if (res.ok) {
-              notify(`NÜKLEER SALDIRI gerçekleşti. Dünya sarsıldı.`);
-              openSidePanel(country);
-            }
-          }
-        };
-        mili.appendChild(nukeBtn);
+  if (!isEnemy && !isAlly) {
+    addBtn(diplo, 'İttifak Teklif Et', () => {
+      const w = country.diplomaticWillingness(rel);
+      if (Math.random() < w + 0.25) {
+        world.formAlliance(player.id, country.id);
+        audio.alliance();
+        notify(`${country.name} ittifakı kabul etti!`);
+      } else {
+        audio.ui();
+        notify(`${country.name} teklifi reddetti.`);
+        country.modifyRelation(player.id, -8);
       }
-    }
+      openSidePanel(country);
+    });
+
+    addBtn(diplo, 'Ticaret Anlaşması', () => {
+      if (world.formTrade(player.id, country.id)) {
+        audio.positive();
+        notify(`${country.name} ile ticaret anlaşması yapıldı.`);
+      }
+      openSidePanel(country);
+    });
+
+    addBtn(diplo, 'Tehdit Et', () => {
+      const res = world.issueThreat(player.id, country.id);
+      if (res.backedDown) {
+        audio.ui();
+        notify(`${country.name} geri adım attı.`);
+      } else if (res.war) {
+        audio.war();
+        notify(`${country.name} tehdide savaşla karşılık verdi!`);
+      } else {
+        audio.ui();
+        notify(`${country.name} tehdidi önemsemedi.`);
+      }
+      openSidePanel(country);
+    }, true);
   }
+
+  if (isAlly) {
+    const info = document.createElement('div');
+    info.style.cssText = 'color:var(--success);font-size:0.85rem;margin-bottom:8px';
+    info.textContent = '✓ Müttefik';
+    diplo.appendChild(info);
+  }
+
+  if (isEnemy) {
+    const info = document.createElement('div');
+    info.style.cssText = 'color:var(--danger);font-size:0.85rem;margin-bottom:8px';
+    info.textContent = '⚔ Savaş halinde';
+    mili.appendChild(info);
+
+    addBtn(mili, 'Takviye Gönder', () => {
+      const army = world.combat.sendArmy(player.id, country.id, 0.3);
+      if (army) {
+        audio.war();
+        notify(`Takviye yola çıktı (${Math.floor(army.strength)} güç).`);
+      } else notify('Yeterli güç yok.');
+    });
+
+    addBtn(mili, 'Ateşkes Teklif Et', () => {
+      // Acceptance based on relative power + character
+      const ratio = player.power / (country.power + 1);
+      const chance = 0.3 + country.character.diplomacy * 0.35 + (ratio > 1.2 ? 0.2 : 0);
+      if (Math.random() < chance) {
+        world.makePeace(player.id, country.id);
+        audio.alliance();
+        notify(`${country.name} ateşkesi kabul etti.`);
+      } else {
+        audio.ui();
+        notify(`${country.name} ateşkesi reddetti.`);
+      }
+      openSidePanel(country);
+    });
+
+    if (player.nuclear && world.events.canUseNuclear(player)) {
+      addBtn(mili, '☢ Nükleer Saldırı', () => {
+        if (confirm(`${country.name} hedefine nükleer saldırı?\n\nDünya tepkisi çok ağır olacaktır.`)) {
+          const res = world.events.launchNuclear(player.id, country.id);
+          if (res.ok) {
+            audio.nuclear();
+            notify('NÜKLEER SALDIRI gerçekleşti. Dünya sarsıldı.');
+            openSidePanel(country);
+          }
+        }
+      }, true);
+    }
+  } else {
+    addBtn(mili, 'Savaş İlan Et + Ordu Gönder', () => {
+      world.declareWar(player.id, country.id);
+      world.combat.sendArmy(player.id, country.id, 0.4);
+      country.expression = 'angry';
+      player.expression = 'angry';
+      audio.war();
+      notify(`${country.name} ile savaş başladı.`);
+      openSidePanel(country);
+    }, true);
+  }
+}
+
+function addBtn(parent, label, onClick, danger = false) {
+  const btn = document.createElement('button');
+  btn.className = 'btn secondary';
+  if (danger) {
+    btn.style.borderColor = 'var(--danger)';
+    btn.style.color = 'var(--danger)';
+  }
+  btn.textContent = label;
+  btn.onclick = onClick;
+  parent.appendChild(btn);
 }
 
 function closeSidePanel() {
@@ -288,12 +331,44 @@ function closeSidePanel() {
 }
 
 function notify(text) {
+  audio.notify();
   const container = document.getElementById('notifications');
   const el = document.createElement('div');
   el.className = 'notification';
   el.textContent = text;
   container.appendChild(el);
   setTimeout(() => el.remove(), 4500);
+}
+
+function showVictory(type) {
+  if (victoryShown) return;
+  victoryShown = true;
+  world.setSpeed(0);
+
+  const modal = document.getElementById('event-modal');
+  const title = document.getElementById('event-title');
+  const desc = document.getElementById('event-description');
+  const choices = document.getElementById('event-choices');
+
+  if (type === 'defeat') {
+    title.textContent = 'Yenilgi';
+    audio.battle(false);
+  } else {
+    title.textContent = 'Zafer!';
+    audio.victory();
+  }
+  desc.textContent = world.victory.getMessage();
+  choices.innerHTML = '';
+
+  const btn = document.createElement('button');
+  btn.className = 'btn primary';
+  btn.textContent = 'Ana Menüye Dön';
+  btn.onclick = () => {
+    modal.classList.add('hidden');
+    showScreen('menu');
+  };
+  choices.appendChild(btn);
+  modal.classList.remove('hidden');
 }
 
 function updateHUD() {
@@ -307,26 +382,35 @@ function updateHUD() {
   document.getElementById('res-tech').textContent = player.tech;
   document.getElementById('game-date').textContent = world.getDateString();
 
-  // Consume event notifications
   if (world.events) {
-    const notes = world.events.consumeNotifications();
-    for (const n of notes) {
+    for (const n of world.events.consumeNotifications()) {
       if (n.type === 'notify') notify(n.text);
     }
+  }
+
+  // Victory check
+  const result = world.victory.check();
+  if (result && !victoryShown) {
+    showVictory(world.victory.victoryType);
   }
 }
 
 function gameLoop(timestamp) {
-  const dt = timestamp - lastTime;
+  const dt = Math.min(timestamp - lastTime, 100);
   lastTime = timestamp;
 
   if (world) {
     world.update(dt);
     updateHUD();
-    renderer.render(world);
+    if (renderer) renderer.render(world);
   }
 
   animationId = requestAnimationFrame(gameLoop);
 }
+
+// Ensure canvas fills on load
+window.addEventListener('resize', () => {
+  if (renderer) renderer.resize();
+});
 
 boot();
