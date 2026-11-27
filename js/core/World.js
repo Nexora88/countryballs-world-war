@@ -15,18 +15,16 @@ export class World {
     this.year = 2026;
     this.speed = 1; // 0 = paused, 1-3 = speed levels
     this.tickAccumulator = 0;
+    this.dayLength = 1200; // ms of real time per game day at speed 1
 
     this.init();
   }
 
   init() {
-    // Create country instances
     for (const data of COUNTRIES) {
       const country = new Country(data);
       this.countries.set(country.id, country);
     }
-
-    // Initialize base relations (regional affinity + character compatibility)
     this.initializeRelations();
   }
 
@@ -40,16 +38,9 @@ export class World {
 
         let score = 0;
 
-        // Same region → slight positive
         if (a.region === b.region) score += 15;
-
-        // Character compatibility
         score += this.characterAffinity(a.characterId, b.characterId);
-
-        // Some historical / thematic biases (kept light & fun)
         score += this.thematicBias(a.id, b.id);
-
-        // Small random variance so every game feels different
         score += (Math.random() - 0.5) * 20;
 
         a.setRelation(b.id, score);
@@ -59,7 +50,6 @@ export class World {
   }
 
   characterAffinity(charA, charB) {
-    // Similar characters tend to get along better (except two aggressives)
     if (charA === charB) {
       if (charA === 'AGGRESSIVE') return -10;
       return 12;
@@ -80,7 +70,6 @@ export class World {
   }
 
   thematicBias(idA, idB) {
-    // Light historical flavor (not heavy realism — this is Countryballs)
     const biases = {
       'usa_china': -25,
       'usa_russia': -30,
@@ -94,7 +83,6 @@ export class World {
       'russia_germany': -10,
       'germany_france': 20,
       'uk_france': 10,
-      'india_pakistan': -40, // if we add pakistan later
       'iran_israel': -45,
       'iran_saudi': -30,
       'turkey_greece': -20
@@ -105,10 +93,7 @@ export class World {
     return biases[key1] ?? biases[key2] ?? 0;
   }
 
-  // --- Player ---
-
   setPlayer(countryId) {
-    // Clear previous
     if (this.playerId) {
       const prev = this.countries.get(this.playerId);
       if (prev) prev.isPlayer = false;
@@ -118,7 +103,6 @@ export class World {
     const country = this.countries.get(countryId);
     if (country) {
       country.isPlayer = true;
-      // Player starts with a small gold bonus
       country.gold += 80;
     }
   }
@@ -127,15 +111,20 @@ export class World {
     return this.countries.get(this.playerId);
   }
 
-  // --- Time ---
+  getCountry(id) {
+    return this.countries.get(id);
+  }
+
+  getAllCountries() {
+    return [...this.countries.values()];
+  }
 
   setSpeed(speed) {
     this.speed = Math.max(0, Math.min(3, speed));
   }
 
   /**
-   * Advance the world.
-   * dt is real milliseconds.
+   * Advance the world. dt is real milliseconds.
    */
   update(dt) {
     if (this.speed === 0) return;
@@ -143,4 +132,71 @@ export class World {
     const gameSpeed = [0, 1, 2.5, 5][this.speed];
     this.tickAccumulator += dt * gameSpeed;
 
-    // One 
+    // One game day passes every dayLength ms at speed 1
+    while (this.tickAccumulator >= this.dayLength) {
+      this.tickAccumulator -= this.dayLength;
+      this.advanceDay();
+    }
+
+    // Continuous soft updates (economy trickle etc.)
+    for (const country of this.countries.values()) {
+      country.tick(dt * gameSpeed / 1000);
+    }
+  }
+
+  advanceDay() {
+    this.day += 1;
+    if (this.day > 30) {
+      this.day = 1;
+      this.month += 1;
+      if (this.month > 12) {
+        this.month = 1;
+        this.year += 1;
+      }
+    }
+
+    // Future: trigger AI decisions, cascade checks, random events here
+  }
+
+  getDateString() {
+    const months = [
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+    ];
+    return `${this.day} ${months[this.month - 1]} ${this.year}`;
+  }
+
+  // --- Diplomacy helpers ---
+
+  declareWar(attackerId, defenderId) {
+    const attacker = this.getCountry(attackerId);
+    const defender = this.getCountry(defenderId);
+    if (!attacker || !defender) return false;
+    if (attacker.isAtWarWith(defenderId)) return false;
+
+    attacker.atWarWith.add(defenderId);
+    defender.atWarWith.add(attackerId);
+
+    // Relation crash
+    attacker.setRelation(defenderId, -90);
+    defender.setRelation(attackerId, -90);
+
+    // Cascade seed: allies may join later
+    return true;
+  }
+
+  formAlliance(aId, bId) {
+    const a = this.getCountry(aId);
+    const b = this.getCountry(bId);
+    if (!a || !b) return false;
+    if (a.isAtWarWith(bId)) return false;
+
+    a.allies.add(bId);
+    b.allies.add(aId);
+
+    a.modifyRelation(bId, 25);
+    b.modifyRelation(aId, 25);
+
+    return true;
+  }
+}
