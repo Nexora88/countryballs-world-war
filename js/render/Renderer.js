@@ -1,5 +1,6 @@
 /**
- * Renderer — Draws the world on canvas
+ * Renderer — Stylized world map + Countryballs
+ * Continents are drawn procedurally so the map is always visible.
  */
 export class Renderer {
   constructor(canvas) {
@@ -13,36 +14,100 @@ export class Renderer {
   }
 
   resize() {
-    const dpr = window.devicePixelRatio || 1;
-    const rect = this.canvas.getBoundingClientRect();
-    this.width = rect.width;
-    this.height = rect.height;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = this.canvas.parentElement.getBoundingClientRect();
+    this.width = rect.width || window.innerWidth;
+    this.height = rect.height || window.innerHeight;
     this.canvas.width = this.width * dpr;
     this.canvas.height = this.height * dpr;
+    this.canvas.style.width = this.width + 'px';
+    this.canvas.style.height = this.height + 'px';
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
+  /** Normalized 0-1 → screen, with generous padding for the top bar */
   worldToScreen(nx, ny) {
-    const padX = 70;
-    const padY = 70;
-    const usableW = this.width - padX * 2;
-    const usableH = this.height - padY * 2 - 52;
+    const padL = this.width * 0.04;
+    const padR = this.width * 0.04;
+    const padT = 70;
+    const padB = this.height * 0.06;
     return {
-      x: padX + nx * usableW,
-      y: 52 + padY + ny * usableH
+      x: padL + nx * (this.width - padL - padR),
+      y: padT + ny * (this.height - padT - padB)
     };
   }
 
   clear() {
     const ctx = this.ctx;
-    const grad = ctx.createRadialGradient(
-      this.width * 0.5, this.height * 0.4, 0,
-      this.width * 0.5, this.height * 0.4, this.width * 0.7
-    );
-    grad.addColorStop(0, '#12151e');
-    grad.addColorStop(1, '#0a0c12');
+    // Ocean
+    const grad = ctx.createLinearGradient(0, 0, 0, this.height);
+    grad.addColorStop(0, '#0b1220');
+    grad.addColorStop(0.5, '#0d1526');
+    grad.addColorStop(1, '#0a101c');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, this.width, this.height);
+
+    this.drawContinents();
+  }
+
+  /**
+   * Simplified continent silhouettes (stylized, not cartographically perfect).
+   * Coordinates are normalized 0-1 then mapped through worldToScreen.
+   */
+  drawContinents() {
+    const ctx = this.ctx;
+    const land = 'rgba(30, 42, 68, 0.55)';
+    const edge = 'rgba(60, 85, 130, 0.25)';
+
+    const shapes = [
+      // North America
+      [[0.05,0.18],[0.12,0.12],[0.22,0.14],[0.28,0.22],[0.26,0.32],[0.22,0.42],[0.18,0.48],[0.12,0.46],[0.08,0.38],[0.06,0.28]],
+      // South America
+      [[0.22,0.52],[0.28,0.50],[0.32,0.56],[0.34,0.68],[0.30,0.82],[0.24,0.88],[0.20,0.78],[0.18,0.62]],
+      // Europe
+      [[0.40,0.22],[0.48,0.18],[0.54,0.20],[0.56,0.28],[0.52,0.34],[0.46,0.36],[0.42,0.32]],
+      // Africa
+      [[0.44,0.40],[0.52,0.38],[0.58,0.44],[0.60,0.58],[0.56,0.72],[0.50,0.78],[0.44,0.72],[0.42,0.55]],
+      // Middle East / Arabia
+      [[0.56,0.40],[0.62,0.38],[0.66,0.44],[0.64,0.52],[0.58,0.54]],
+      // Russia / North Asia
+      [[0.55,0.16],[0.70,0.12],[0.88,0.14],[0.92,0.22],[0.85,0.28],[0.70,0.30],[0.58,0.26]],
+      // India / South Asia
+      [[0.66,0.42],[0.74,0.40],[0.76,0.50],[0.72,0.58],[0.66,0.54]],
+      // East Asia
+      [[0.76,0.28],[0.88,0.26],[0.92,0.34],[0.88,0.42],[0.78,0.40]],
+      // SE Asia / Indonesia area
+      [[0.78,0.52],[0.88,0.50],[0.92,0.58],[0.86,0.66],[0.78,0.62]],
+      // Australia
+      [[0.82,0.70],[0.94,0.68],[0.96,0.78],[0.88,0.84],[0.80,0.80]]
+    ];
+
+    for (const poly of shapes) {
+      ctx.beginPath();
+      const first = this.worldToScreen(poly[0][0], poly[0][1]);
+      ctx.moveTo(first.x, first.y);
+      for (let i = 1; i < poly.length; i++) {
+        const p = this.worldToScreen(poly[i][0], poly[i][1]);
+        ctx.lineTo(p.x, p.y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = land;
+      ctx.fill();
+      ctx.strokeStyle = edge;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // Subtle grid for depth
+    ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 8; i++) {
+      const y = (i / 8) * this.height;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(this.width, y);
+      ctx.stroke();
+    }
   }
 
   drawCountry(country) {
@@ -50,48 +115,49 @@ export class Renderer {
     const pos = this.worldToScreen(country.x, country.y);
     const r = country.radius;
 
+    // Glow
     if (country.selected || country.hover || country.isPlayer) {
       ctx.beginPath();
-      ctx.arc(pos.x, pos.y, r + 9, 0, Math.PI * 2);
+      ctx.arc(pos.x, pos.y, r + 10, 0, Math.PI * 2);
       ctx.fillStyle = country.isPlayer
-        ? 'rgba(91, 141, 239, 0.2)'
+        ? 'rgba(91, 141, 239, 0.22)'
         : country.selected
-          ? 'rgba(91, 141, 239, 0.28)'
-          : 'rgba(255,255,255,0.07)';
+          ? 'rgba(91, 141, 239, 0.3)'
+          : 'rgba(255,255,255,0.08)';
       ctx.fill();
     }
 
     // Shadow
     ctx.beginPath();
     ctx.arc(pos.x + 2, pos.y + 4, r, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.fill();
 
-    // Body
+    // Body with soft shading
     const bodyGrad = ctx.createRadialGradient(
-      pos.x - r * 0.3, pos.y - r * 0.35, r * 0.1,
+      pos.x - r * 0.3, pos.y - r * 0.35, r * 0.08,
       pos.x, pos.y, r
     );
-    bodyGrad.addColorStop(0, this.lighten(country.color, 28));
-    bodyGrad.addColorStop(0.65, country.color);
-    bodyGrad.addColorStop(1, this.darken(country.color, 22));
+    bodyGrad.addColorStop(0, this.lighten(country.color, 30));
+    bodyGrad.addColorStop(0.6, country.color);
+    bodyGrad.addColorStop(1, this.darken(country.color, 25));
 
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
     ctx.fillStyle = bodyGrad;
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Nuclear indicator
+    // Nuclear badge
     if (country.nuclear) {
       ctx.beginPath();
-      ctx.arc(pos.x + r * 0.65, pos.y - r * 0.65, 5, 0, Math.PI * 2);
+      ctx.arc(pos.x + r * 0.68, pos.y - r * 0.68, 5.5, 0, Math.PI * 2);
       ctx.fillStyle = '#f0b429';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+      ctx.strokeStyle = 'rgba(0,0,0,0.45)';
       ctx.lineWidth = 1;
       ctx.stroke();
     }
@@ -102,7 +168,7 @@ export class Renderer {
     ctx.font = '600 11px Inter, system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillStyle = 'rgba(232, 236, 244, 0.9)';
+    ctx.fillStyle = 'rgba(232, 236, 244, 0.92)';
     ctx.fillText(country.short, pos.x, pos.y + r + 6);
 
     if (country.isPlayer) {
@@ -117,31 +183,19 @@ export class Renderer {
     const eyeSpacing = r * 0.32;
     const eyeR = r * 0.16;
 
-    ctx.beginPath();
-    ctx.arc(cx - eyeSpacing, eyeY, eyeR, 0, Math.PI * 2);
     ctx.fillStyle = '#f5f5f5';
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(cx - eyeSpacing, eyeY, eyeR, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + eyeSpacing, eyeY, eyeR, 0, Math.PI * 2); ctx.fill();
 
-    ctx.beginPath();
-    ctx.arc(cx + eyeSpacing, eyeY, eyeR, 0, Math.PI * 2);
-    ctx.fillStyle = '#f5f5f5';
-    ctx.fill();
-
-    let pupilOffsetY = 0;
-    let pupilScale = 1;
+    let pupilOffsetY = 0, pupilScale = 1;
     if (country.expression === 'angry') { pupilOffsetY = 2; pupilScale = 0.85; }
-    else if (country.expression === 'happy' || country.expression === 'smug') { pupilOffsetY = -1; }
+    else if (country.expression === 'happy' || country.expression === 'smug') pupilOffsetY = -1;
     else if (country.expression === 'worried') { pupilOffsetY = 1; pupilScale = 1.1; }
 
     const pupilR = eyeR * 0.45 * pupilScale;
     ctx.fillStyle = '#1a1a1a';
-
-    ctx.beginPath();
-    ctx.arc(cx - eyeSpacing, eyeY + pupilOffsetY, pupilR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx + eyeSpacing, eyeY + pupilOffsetY, pupilR, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(cx - eyeSpacing, eyeY + pupilOffsetY, pupilR, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + eyeSpacing, eyeY + pupilOffsetY, pupilR, 0, Math.PI * 2); ctx.fill();
 
     if (country.expression === 'angry' || country.atWarWith.size > 0) {
       ctx.strokeStyle = '#1a1a1a';
@@ -158,27 +212,26 @@ export class Renderer {
     }
   }
 
-  drawConnection(from, to, type = 'relation') {
+  drawConnection(from, to, type) {
     const ctx = this.ctx;
     const a = this.worldToScreen(from.x, from.y);
     const b = this.worldToScreen(to.x, to.y);
-
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
 
     if (type === 'war') {
-      ctx.strokeStyle = 'rgba(239, 91, 91, 0.4)';
+      ctx.strokeStyle = 'rgba(239, 91, 91, 0.45)';
       ctx.lineWidth = 2.5;
       ctx.setLineDash([6, 4]);
     } else if (type === 'ally') {
-      ctx.strokeStyle = 'rgba(62, 207, 142, 0.35)';
+      ctx.strokeStyle = 'rgba(62, 207, 142, 0.4)';
       ctx.lineWidth = 2;
       ctx.setLineDash([]);
-    } else {
-      ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([]);
+    } else if (type === 'trade') {
+      ctx.strokeStyle = 'rgba(240, 180, 41, 0.3)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
     }
     ctx.stroke();
     ctx.setLineDash([]);
@@ -192,7 +245,6 @@ export class Renderer {
     const a = this.worldToScreen(from.x, from.y);
     const b = this.worldToScreen(to.x, to.y);
     const t = army.progress;
-
     const x = a.x + (b.x - a.x) * t;
     const y = a.y + (b.y - a.y) * t;
 
@@ -200,26 +252,23 @@ export class Renderer {
     const owner = world.getCountry(army.ownerId);
     const color = owner ? owner.color : '#888';
 
-    // Trail
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(x, y);
-    ctx.strokeStyle = 'rgba(239, 91, 91, 0.25)';
+    ctx.strokeStyle = 'rgba(239, 91, 91, 0.3)';
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 4]);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Army dot
     ctx.beginPath();
     ctx.arc(x, y, 6 + army.strength * 0.04, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // Strength number
     ctx.font = 'bold 9px Inter';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -229,10 +278,8 @@ export class Renderer {
 
   render(world) {
     this.clear();
-
     const countries = world.getAllCountries();
 
-    // Connections
     for (const c of countries) {
       for (const enemyId of c.atWarWith) {
         const enemy = world.getCountry(enemyId);
@@ -244,14 +291,12 @@ export class Renderer {
       }
     }
 
-    // Armies
     if (world.combat) {
       for (const army of world.combat.getArmies()) {
         if (!army.retreating) this.drawArmy(army, world);
       }
     }
 
-    // Countries
     for (const country of countries) {
       this.drawCountry(country);
     }
@@ -280,7 +325,7 @@ export class Renderer {
       const pos = this.worldToScreen(c.x, c.y);
       const dx = sx - pos.x;
       const dy = sy - pos.y;
-      if (dx * dx + dy * dy <= c.radius * c.radius) return c;
+      if (dx * dx + dy * dy <= (c.radius + 4) * (c.radius + 4)) return c;
     }
     return null;
   }
