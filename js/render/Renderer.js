@@ -1,6 +1,7 @@
 /**
- * Renderer — Original stylized-realistic world map + Countryballs
- * Continents drawn as multi-polygon silhouettes (not a clone of any game).
+ * Renderer — Sovereign visual pass.
+ * Original Canvas 2D artwork: layered ocean, stylized geographic land,
+ * countryball flag treatments, animated army convoys and tactical overlays.
  */
 export class Renderer {
   constructor(canvas) {
@@ -8,329 +9,242 @@ export class Renderer {
     this.ctx = canvas.getContext('2d');
     this.width = 0;
     this.height = 0;
-    this.hoveredCountry = null;
+    this.time = 0;
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
 
   resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const parent = this.canvas.parentElement || document.body;
-    const rect = parent.getBoundingClientRect();
-    this.width = Math.max(rect.width, window.innerWidth) || 1200;
-    this.height = Math.max(rect.height, window.innerHeight) || 800;
-    this.canvas.width = this.width * dpr;
-    this.canvas.height = this.height * dpr;
+    const rect = this.canvas.parentElement.getBoundingClientRect();
+    this.width = Math.max(320, rect.width);
+    this.height = Math.max(320, rect.height);
+    this.canvas.width = Math.round(this.width * dpr);
+    this.canvas.height = Math.round(this.height * dpr);
     this.canvas.style.width = this.width + 'px';
     this.canvas.style.height = this.height + 'px';
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
   worldToScreen(nx, ny) {
-    const padL = this.width * 0.03;
-    const padR = this.width * 0.03;
-    const padT = 58;
-    const padB = this.height * 0.04;
+    const padL = this.width * 0.035;
+    const padR = this.width * 0.035;
+    const padT = 76;
+    const padB = 38;
     return {
       x: padL + nx * (this.width - padL - padR),
-      y: padT + ny * (this.height - padT - padB)
+      y: padT + ny * Math.max(100, this.height - padT - padB)
     };
   }
 
   clear() {
     const ctx = this.ctx;
-    const g = ctx.createLinearGradient(0, 0, 0, this.height);
-    g.addColorStop(0, '#0a1424');
-    g.addColorStop(0.45, '#0c1830');
-    g.addColorStop(1, '#08101c');
+    const g = ctx.createLinearGradient(0, 0, this.width, this.height);
+    g.addColorStop(0, '#071426');
+    g.addColorStop(0.52, '#0b2037');
+    g.addColorStop(1, '#07111f');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.width, this.height);
-    this.drawWorldMap();
-  }
 
-  /**
-   * Multi-part continent outlines — original simplified geography.
-   * Points are normalized 0–1.
-   */
-  drawWorldMap() {
-    const ctx = this.ctx;
-    const fill = 'rgba(28, 48, 78, 0.72)';
-    const stroke = 'rgba(70, 110, 160, 0.35)';
-    const inner = 'rgba(20, 36, 60, 0.4)';
-
-    const continents = [
-      // Greenland-ish
-      [[0.28,0.06],[0.34,0.04],[0.38,0.08],[0.36,0.14],[0.30,0.16],[0.26,0.12]],
-      // North America
-      [[0.04,0.14],[0.10,0.08],[0.18,0.06],[0.24,0.10],[0.28,0.18],[0.26,0.28],[0.22,0.36],[0.20,0.44],[0.14,0.48],[0.10,0.42],[0.08,0.32],[0.06,0.22]],
-      // Central America bridge
-      [[0.12,0.48],[0.16,0.48],[0.18,0.54],[0.14,0.56],[0.10,0.52]],
-      // South America
-      [[0.18,0.56],[0.24,0.52],[0.30,0.54],[0.34,0.62],[0.32,0.74],[0.28,0.86],[0.22,0.90],[0.18,0.82],[0.16,0.68],[0.16,0.58]],
-      // Western Europe
-      [[0.42,0.22],[0.46,0.18],[0.50,0.20],[0.52,0.26],[0.50,0.32],[0.46,0.34],[0.42,0.30],[0.40,0.26]],
-      // British Isles
-      [[0.40,0.22],[0.43,0.20],[0.44,0.24],[0.41,0.26]],
-      // Scandinavia
-      [[0.50,0.12],[0.54,0.10],[0.56,0.16],[0.54,0.22],[0.50,0.20]],
-      // Eastern Europe / Balkans
-      [[0.52,0.26],[0.58,0.24],[0.60,0.30],[0.58,0.36],[0.54,0.38],[0.50,0.34]],
-      // Africa
-      [[0.44,0.40],[0.50,0.38],[0.56,0.40],[0.60,0.48],[0.62,0.58],[0.58,0.70],[0.52,0.78],[0.46,0.76],[0.42,0.66],[0.40,0.52],[0.42,0.44]],
-      // Arabian Peninsula
-      [[0.56,0.44],[0.62,0.42],[0.66,0.48],[0.64,0.56],[0.58,0.56],[0.56,0.50]],
-      // Russia / Siberia
-      [[0.56,0.12],[0.68,0.08],[0.82,0.10],[0.92,0.14],[0.94,0.22],[0.88,0.28],[0.76,0.30],[0.64,0.28],[0.56,0.24]],
-      // Central Asia
-      [[0.64,0.30],[0.72,0.28],[0.76,0.34],[0.72,0.40],[0.64,0.38]],
-      // Indian subcontinent
-      [[0.68,0.42],[0.74,0.40],[0.78,0.48],[0.76,0.58],[0.70,0.60],[0.66,0.52]],
-      // China / East Asia mainland
-      [[0.74,0.28],[0.86,0.24],[0.92,0.30],[0.90,0.40],[0.84,0.44],[0.76,0.42],[0.72,0.36]],
-      // Korea / Japan area blobs
-      [[0.88,0.32],[0.92,0.30],[0.94,0.36],[0.90,0.38]],
-      [[0.92,0.34],[0.96,0.32],[0.98,0.38],[0.94,0.40]],
-      // SE Asia
-      [[0.78,0.50],[0.88,0.48],[0.92,0.56],[0.86,0.64],[0.78,0.60]],
-      // Indonesia archipelago hint
-      [[0.80,0.62],[0.90,0.60],[0.94,0.66],[0.88,0.70],[0.80,0.68]],
-      // Australia
-      [[0.82,0.70],[0.94,0.68],[0.98,0.74],[0.96,0.84],[0.88,0.88],[0.80,0.82],[0.78,0.74]],
-      // New Zealand hint
-      [[0.96,0.86],[0.98,0.84],[0.99,0.90],[0.97,0.92]]
-    ];
-
-    for (const poly of continents) {
-      if (poly.length < 3) continue;
+    // Ocean depth rings and subtle navigation grid.
+    for (let i = 0; i < 7; i++) {
       ctx.beginPath();
-      const p0 = this.worldToScreen(poly[0][0], poly[0][1]);
-      ctx.moveTo(p0.x, p0.y);
-      for (let i = 1; i < poly.length; i++) {
-        const p = this.worldToScreen(poly[i][0], poly[i][1]);
-        ctx.lineTo(p.x, p.y);
-      }
-      ctx.closePath();
-      ctx.fillStyle = fill;
-      ctx.fill();
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-    }
-
-    // Soft equator / latitude lines
-    ctx.strokeStyle = 'rgba(255,255,255,0.025)';
-    ctx.lineWidth = 1;
-    for (let i = 1; i < 6; i++) {
-      const y = this.worldToScreen(0, i / 6).y;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(this.width, y);
-      ctx.stroke();
-    }
-  }
-
-  drawCountry(country) {
-    const ctx = this.ctx;
-    const pos = this.worldToScreen(country.x, country.y);
-    const r = country.radius;
-
-    if (country.selected || country.hover || country.isPlayer) {
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, r + 11, 0, Math.PI * 2);
-      ctx.fillStyle = country.isPlayer
-        ? 'rgba(91, 141, 239, 0.25)'
-        : country.selected
-          ? 'rgba(91, 141, 239, 0.32)'
-          : 'rgba(255,255,255,0.09)';
-      ctx.fill();
-    }
-
-    ctx.beginPath();
-    ctx.arc(pos.x + 2, pos.y + 4, r, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    ctx.fill();
-
-    const bodyGrad = ctx.createRadialGradient(
-      pos.x - r * 0.3, pos.y - r * 0.35, r * 0.08,
-      pos.x, pos.y, r
-    );
-    bodyGrad.addColorStop(0, this.lighten(country.color, 32));
-    bodyGrad.addColorStop(0.55, country.color);
-    bodyGrad.addColorStop(1, this.darken(country.color, 28));
-
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = bodyGrad;
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    if (country.nuclear) {
-      ctx.beginPath();
-      ctx.arc(pos.x + r * 0.7, pos.y - r * 0.7, 5.5, 0, Math.PI * 2);
-      ctx.fillStyle = '#f0b429';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.ellipse(this.width * 0.52, this.height * 0.49, this.width * (0.16 + i * 0.085), this.height * (0.12 + i * 0.064), -0.08, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(72, 139, 190,' + (0.035 - i * 0.003) + ')';
       ctx.lineWidth = 1;
       ctx.stroke();
     }
-
-    this.drawEyes(ctx, pos.x, pos.y, r, country);
-
-    ctx.font = '600 11px Inter, system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = 'rgba(232, 236, 244, 0.95)';
-    ctx.fillText(country.short, pos.x, pos.y + r + 5);
-
-    if (country.isPlayer) {
-      ctx.font = '10px Inter';
-      ctx.fillStyle = '#5b8def';
-      ctx.fillText('SEN', pos.x, pos.y + r + 18);
+    ctx.strokeStyle = 'rgba(133,190,224,0.055)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < this.width; x += 64) {
+      ctx.beginPath(); ctx.moveTo(x, 52); ctx.lineTo(x, this.height); ctx.stroke();
     }
+    for (let y = 88; y < this.height; y += 64) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(this.width, y); ctx.stroke();
+    }
+    this.drawWorldMap();
+    this.drawMapChrome();
   }
 
-  drawEyes(ctx, cx, cy, r, country) {
-    const eyeY = cy - r * 0.12;
-    const eyeSpacing = r * 0.32;
-    const eyeR = r * 0.16;
-
-    ctx.fillStyle = '#f5f5f5';
-    ctx.beginPath(); ctx.arc(cx - eyeSpacing, eyeY, eyeR, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx + eyeSpacing, eyeY, eyeR, 0, Math.PI * 2); ctx.fill();
-
-    let pupilOffsetY = 0, pupilScale = 1;
-    if (country.expression === 'angry') { pupilOffsetY = 2; pupilScale = 0.85; }
-    else if (country.expression === 'happy' || country.expression === 'smug') pupilOffsetY = -1;
-    else if (country.expression === 'worried') { pupilOffsetY = 1; pupilScale = 1.1; }
-
-    const pupilR = eyeR * 0.45 * pupilScale;
-    ctx.fillStyle = '#1a1a1a';
-    ctx.beginPath(); ctx.arc(cx - eyeSpacing, eyeY + pupilOffsetY, pupilR, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx + eyeSpacing, eyeY + pupilOffsetY, pupilR, 0, Math.PI * 2); ctx.fill();
-
-    if (country.expression === 'angry' || country.atWarWith.size > 0) {
-      ctx.strokeStyle = '#1a1a1a';
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(cx - eyeSpacing - eyeR * 0.9, eyeY - eyeR * 1.3);
-      ctx.lineTo(cx - eyeSpacing + eyeR * 0.6, eyeY - eyeR * 0.7);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(cx + eyeSpacing + eyeR * 0.9, eyeY - eyeR * 1.3);
-      ctx.lineTo(cx + eyeSpacing - eyeR * 0.6, eyeY - eyeR * 0.7);
-      ctx.stroke();
-    }
-  }
-
-  drawConnection(from, to, type) {
+  drawWorldMap() {
     const ctx = this.ctx;
-    const a = this.worldToScreen(from.x, from.y);
-    const b = this.worldToScreen(to.x, to.y);
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    if (type === 'war') {
-      ctx.strokeStyle = 'rgba(239, 91, 91, 0.5)';
-      ctx.lineWidth = 2.5;
-      ctx.setLineDash([6, 4]);
-    } else if (type === 'ally') {
-      ctx.strokeStyle = 'rgba(62, 207, 142, 0.42)';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([]);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
+    // Hand-authored simplified continent silhouettes; intentionally original,
+    // pending replacement with attributed Natural Earth / CC0 vector geometry.
+    const continents = [
+      [[.035,.19],[.075,.10],[.15,.055],[.23,.09],[.285,.17],[.27,.25],[.235,.32],[.205,.43],[.16,.49],[.105,.45],[.075,.35],[.045,.27]],
+      [[.105,.48],[.15,.48],[.18,.54],[.15,.59],[.11,.55]],
+      [[.17,.57],[.22,.52],[.29,.54],[.345,.63],[.33,.73],[.30,.82],[.265,.92],[.22,.88],[.19,.78],[.16,.66]],
+      [[.275,.06],[.33,.035],[.38,.075],[.365,.14],[.31,.17]],
+      [[.405,.21],[.435,.17],[.48,.18],[.515,.23],[.515,.29],[.49,.34],[.45,.35],[.415,.31],[.39,.26]],
+      [[.49,.12],[.525,.085],[.55,.13],[.56,.20],[.535,.25],[.505,.20]],
+      [[.515,.27],[.56,.24],[.605,.28],[.61,.34],[.58,.39],[.535,.38],[.50,.33]],
+      [[.425,.40],[.48,.37],[.55,.39],[.60,.46],[.625,.57],[.60,.66],[.565,.75],[.515,.80],[.47,.75],[.435,.65],[.405,.52]],
+      [[.56,.43],[.62,.41],[.665,.47],[.655,.54],[.615,.58],[.575,.54]],
+      [[.555,.12],[.64,.085],[.74,.085],[.84,.105],[.93,.14],[.955,.21],[.91,.27],[.82,.30],[.72,.29],[.63,.27],[.57,.23]],
+      [[.63,.30],[.70,.285],[.755,.33],[.735,.39],[.675,.42],[.625,.37]],
+      [[.675,.42],[.725,.395],[.775,.445],[.79,.52],[.755,.61],[.715,.58],[.685,.51]],
+      [[.735,.29],[.80,.245],[.88,.255],[.93,.31],[.91,.39],[.865,.445],[.80,.43],[.755,.39]],
+      [[.88,.32],[.91,.30],[.935,.35],[.91,.39]],
+      [[.925,.34],[.955,.32],[.98,.37],[.955,.42]],
+      [[.77,.49],[.84,.475],[.91,.515],[.93,.57],[.885,.64],[.825,.65],[.78,.59]],
+      [[.80,.64],[.86,.625],[.93,.66],[.90,.71],[.83,.70]],
+      [[.79,.73],[.855,.69],[.94,.70],[.98,.77],[.96,.85],[.91,.89],[.85,.87],[.80,.82]],
+      [[.965,.87],[.98,.85],[.995,.90],[.98,.94]]
+    ];
 
-  drawArmy(army, world) {
-    const from = world.getCountry(army.fromId);
-    const to = world.getCountry(army.toId);
-    if (!from || !to) return;
-    const a = this.worldToScreen(from.x, from.y);
-    const b = this.worldToScreen(to.x, to.y);
-    const t = army.progress;
-    const x = a.x + (b.x - a.x) * t;
-    const y = a.y + (b.y - a.y) * t;
-    const ctx = this.ctx;
-    const owner = world.getCountry(army.ownerId);
-    const color = owner ? owner.color : '#888';
-
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(x, y);
-    ctx.strokeStyle = 'rgba(239, 91, 91, 0.35)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([4, 4]);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    ctx.beginPath();
-    ctx.arc(x, y, 6 + army.strength * 0.04, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    ctx.font = 'bold 9px Inter';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#fff';
-    ctx.fillText(Math.floor(army.strength), x, y);
-  }
-
-  render(world) {
-    this.clear();
-    const countries = world.getAllCountries();
-
-    for (const c of countries) {
-      for (const enemyId of c.atWarWith) {
-        const enemy = world.getCountry(enemyId);
-        if (enemy && c.id < enemyId) this.drawConnection(c, enemy, 'war');
+    for (const poly of continents) {
+      const pts = poly.map(([x,y]) => this.worldToScreen(x,y));
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i=1;i<pts.length;i++) {
+        const prev=pts[i-1], cur=pts[i];
+        const mx=(prev.x+cur.x)/2, my=(prev.y+cur.y)/2;
+        ctx.quadraticCurveTo(prev.x,prev.y,mx,my);
       }
-      for (const allyId of c.allies) {
-        const ally = world.getCountry(allyId);
-        if (ally && c.id < allyId) this.drawConnection(c, ally, 'ally');
-      }
+      ctx.closePath();
+      const land = ctx.createLinearGradient(0, this.height*.12, this.width*.2, this.height*.88);
+      land.addColorStop(0,'#29465b'); land.addColorStop(.5,'#1d394c'); land.addColorStop(1,'#142c40');
+      ctx.shadowColor='rgba(0,0,0,.48)'; ctx.shadowBlur=22; ctx.shadowOffsetY=9;
+      ctx.fillStyle=land; ctx.fill();
+      ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+      ctx.strokeStyle='rgba(126,184,204,.52)'; ctx.lineWidth=1.35; ctx.stroke();
+      ctx.strokeStyle='rgba(190,220,222,.09)'; ctx.lineWidth=4; ctx.stroke();
     }
 
-    if (world.combat) {
-      for (const army of world.combat.getArmies()) {
-        if (!army.retreating) this.drawArmy(army, world);
-      }
+    // Terrain texture: deterministic specks, no runtime randomness.
+    for (let i=0;i<180;i++) {
+      const x=((i*7919)%997)/997*this.width;
+      const y=90+((i*3571)%887)/887*(this.height-130);
+      ctx.beginPath(); ctx.arc(x,y, i%5===0?1.5:.7,0,Math.PI*2);
+      ctx.fillStyle='rgba(172,205,192,.10)'; ctx.fill();
     }
 
-    for (const country of countries) this.drawCountry(country);
-  }
-
-  lighten(hex, percent) {
-    const num = parseInt(hex.replace('#', ''), 16);
-    const r = Math.min(255, (num >> 16) + percent);
-    const g = Math.min(255, ((num >> 8) & 0x00FF) + percent);
-    const b = Math.min(255, (num & 0x0000FF) + percent);
-    return `rgb(${r},${g},${b})`;
-  }
-
-  darken(hex, percent) {
-    const num = parseInt(hex.replace('#', ''), 16);
-    const r = Math.max(0, (num >> 16) - percent);
-    const g = Math.max(0, ((num >> 8) & 0x00FF) - percent);
-    const b = Math.max(0, (num & 0x0000FF) - percent);
-    return `rgb(${r},${g},${b})`;
-  }
-
-  hitTest(sx, sy, world) {
-    const countries = world.getAllCountries();
-    for (let i = countries.length - 1; i >= 0; i--) {
-      const c = countries[i];
-      const pos = this.worldToScreen(c.x, c.y);
-      const dx = sx - pos.x;
-      const dy = sy - pos.y;
-      if (dx * dx + dy * dy <= (c.radius + 5) * (c.radius + 5)) return c;
+    // Latitude / longitude guides.
+    ctx.strokeStyle='rgba(159,203,226,.11)'; ctx.lineWidth=1;
+    for(let i=1;i<6;i++){
+      const y=this.worldToScreen(0,i/6).y;
+      ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(this.width,y);ctx.stroke();
     }
+    for(let i=1;i<12;i++){
+      const x=this.worldToScreen(i/12,0).x;
+      ctx.beginPath();ctx.moveTo(x,65);ctx.lineTo(x,this.height);ctx.stroke();
+    }
+  }
+
+  drawMapChrome() {
+    const ctx=this.ctx;
+    ctx.save();
+    ctx.fillStyle='rgba(8,18,31,.72)';
+    ctx.strokeStyle='rgba(117,177,210,.18)';
+    this.roundRect(18,66,142,30,9);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#a9c8dc';ctx.font='700 10px Inter,system-ui';ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText('TACTICAL WORLD MAP',30,81);
+    ctx.textAlign='right';ctx.fillStyle='rgba(177,205,222,.58)';ctx.font='600 9px Inter,system-ui';
+    ctx.fillText('SOVEREIGN  •  GLOBAL THEATER',this.width-20,81);
+    ctx.restore();
+  }
+
+  roundRect(x,y,w,h,r) {
+    const c=this.ctx;c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();
+  }
+
+  drawCountry(country) {
+    const ctx=this.ctx, pos=this.worldToScreen(country.x,country.y), r=country.radius;
+    const pulse=(Math.sin(this.time*.003+country.x*13)*.5+.5);
+    if(country.isPlayer||country.selected||country.hover){
+      ctx.beginPath();ctx.arc(pos.x,pos.y,r+9+pulse*4,0,Math.PI*2);
+      ctx.fillStyle=country.isPlayer?'rgba(65,160,255,.13)':'rgba(226,241,255,.10)';ctx.fill();
+      ctx.strokeStyle=country.isPlayer?'rgba(93,181,255,.62)':'rgba(220,235,245,.36)';ctx.lineWidth=1.5;ctx.stroke();
+    }
+    // Drop shadow and flag-painted sphere.
+    ctx.beginPath();ctx.ellipse(pos.x+2,pos.y+r*.82,r*.82,r*.28,0,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,.34)';ctx.fill();
+    const body=ctx.createRadialGradient(pos.x-r*.34,pos.y-r*.42,r*.05,pos.x,pos.y,r*1.08);
+    body.addColorStop(0,this.lighten(country.color,65));body.addColorStop(.48,country.color);body.addColorStop(1,this.darken(country.color,55));
+    ctx.beginPath();ctx.arc(pos.x,pos.y,r,0,Math.PI*2);ctx.fillStyle=body;ctx.fill();
+    ctx.save();ctx.beginPath();ctx.arc(pos.x,pos.y,r*.91,0,Math.PI*2);ctx.clip();
+    const colors=country.flagColors||[country.color];
+    if(colors.length>1){
+      const stripeW=(r*2.2)/colors.length;
+      colors.forEach((color,i)=>{ctx.fillStyle=color;ctx.globalAlpha=.34;ctx.fillRect(pos.x-r*1.1+i*stripeW,pos.y-r*1.1,stripeW+1,r*2.2);});
+      ctx.globalAlpha=1;
+    }
+    ctx.restore();
+    ctx.beginPath();ctx.arc(pos.x,pos.y,r,0,Math.PI*2);
+    ctx.strokeStyle='rgba(235,247,255,.75)';ctx.lineWidth=1.8;ctx.stroke();
+    ctx.beginPath();ctx.arc(pos.x-r*.28,pos.y-r*.34,r*.23,Math.PI*1.05,Math.PI*1.65);
+    ctx.strokeStyle='rgba(255,255,255,.48)';ctx.lineWidth=2;ctx.stroke();
+
+    this.drawEyes(ctx,pos.x,pos.y,r,country);
+    if(country.nuclear){
+      ctx.beginPath();ctx.arc(pos.x+r*.72,pos.y-r*.7,5.5,0,Math.PI*2);ctx.fillStyle='#ffc857';ctx.fill();
+      ctx.strokeStyle='#6b4b13';ctx.lineWidth=1;ctx.stroke();
+    }
+    // Nameplate with readable contrast.
+    ctx.font='700 10px Inter,system-ui';const label=country.short;
+    const tw=ctx.measureText(label).width+13;
+    ctx.fillStyle='rgba(5,13,23,.84)';this.roundRect(pos.x-tw/2,pos.y+r+5,tw,17,6);ctx.fill();
+    ctx.strokeStyle=country.isPlayer?'rgba(88,176,255,.8)':'rgba(175,205,225,.18)';ctx.lineWidth=1;ctx.stroke();
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#e9f4fc';ctx.fillText(label,pos.x,pos.y+r+13.5);
+    if(country.isPlayer){ctx.font='800 8px Inter';ctx.fillStyle='#79c7ff';ctx.fillText('YOU',pos.x,pos.y+r+31);}
+  }
+
+  drawEyes(ctx,cx,cy,r,country){
+    const ey=cy-r*.12,sp=r*.31,er=r*.17;
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx-sp,ey,er,0,Math.PI*2);ctx.arc(cx+sp,ey,er,0,Math.PI*2);ctx.fill();
+    let oy=0,scale=1;if(country.expression==='angry'){oy=2;scale=.82;}if(country.expression==='worried'){oy=1;scale=1.08;}
+    ctx.fillStyle='#15202b';ctx.beginPath();ctx.arc(cx-sp,ey+oy,er*.46*scale,0,Math.PI*2);ctx.arc(cx+sp,ey+oy,er*.46*scale,0,Math.PI*2);ctx.fill();
+    if(country.expression==='angry'||country.atWarWith.size>0){
+      ctx.strokeStyle='#20232b';ctx.lineWidth=2.4;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(cx-sp-er,ey-er*.9);ctx.lineTo(cx-sp+er*.7,ey-er*.55);ctx.moveTo(cx+sp+er,ey-er*.9);ctx.lineTo(cx+sp-er*.7,ey-er*.55);ctx.stroke();
+    }
+  }
+
+  drawConnection(from,to,type){
+    const ctx=this.ctx,a=this.worldToScreen(from.x,from.y),b=this.worldToScreen(to.x,to.y);
+    ctx.save();ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+    ctx.setLineDash(type==='war'?[7,6]:[]);
+    ctx.strokeStyle=type==='war'?'rgba(255,91,100,.48)':'rgba(81,221,171,.32)';
+    ctx.lineWidth=type==='war'?2.5:1.8;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=type==='war'?9:4;ctx.stroke();ctx.restore();
+  }
+
+  drawArmy(army,world){
+    const from=world.getCountry(army.fromId),to=world.getCountry(army.toId);if(!from||!to)return;
+    const a=this.worldToScreen(from.x,from.y),b=this.worldToScreen(to.x,to.y),t=army.progress;
+    const x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
+    const ctx=this.ctx,owner=world.getCountry(army.ownerId),color=owner?owner.color:'#f2f5f8';
+    ctx.save();
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(x,y);
+    ctx.strokeStyle='rgba(255,190,96,.38)';ctx.lineWidth=5;ctx.shadowColor='#ff9f43';ctx.shadowBlur=10;ctx.stroke();
+    ctx.setLineDash([5,7]);ctx.strokeStyle='rgba(255,226,177,.86)';ctx.lineWidth=1.5;ctx.lineDashOffset=-this.time*.025;ctx.stroke();ctx.setLineDash([]);
+    const bob=Math.sin(this.time*.012+army.id)*2;
+    ctx.beginPath();ctx.arc(x,y+bob,9+Math.min(army.strength*.025,4),0,Math.PI*2);
+    ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=15;ctx.fill();ctx.shadowBlur=0;
+    ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+    // Tiny marching-unit silhouettes.
+    for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(x-5+i*5,y-13+bob+Math.sin(this.time*.018+i)*1.5,2.1,0,Math.PI*2);ctx.fillStyle='#eaf5ff';ctx.fill();}
+    ctx.fillStyle='#081522';this.roundRect(x-13,y+10,26,13,5);ctx.fill();
+    ctx.font='800 8px Inter';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff';ctx.fillText(Math.floor(army.strength),x,y+16.5);
+    ctx.restore();
+  }
+
+  render(world){
+    this.time+=16;this.clear();
+    const countries=world.getAllCountries();
+    for(const c of countries){
+      for(const id of c.atWarWith){const other=world.getCountry(id);if(other&&c.id<id)this.drawConnection(c,other,'war');}
+      for(const id of c.allies){const other=world.getCountry(id);if(other&&c.id<id)this.drawConnection(c,other,'ally');}
+    }
+    if(world.combat)for(const army of world.combat.getArmies())if(!army.retreating)this.drawArmy(army,world);
+    for(const country of countries)this.drawCountry(country);
+  }
+
+  lighten(hex,p){const n=parseInt(hex.replace('#',''),16),r=Math.min(255,(n>>16)+p),g=Math.min(255,((n>>8)&255)+p),b=Math.min(255,(n&255)+p);return 'rgb('+r+','+g+','+b+')';}
+  darken(hex,p){const n=parseInt(hex.replace('#',''),16),r=Math.max(0,(n>>16)-p),g=Math.max(0,((n>>8)&255)-p),b=Math.max(0,(n&255)-p);return 'rgb('+r+','+g+','+b+')';}
+
+  hitTest(sx,sy,world){
+    const countries=world.getAllCountries();
+    for(let i=countries.length-1;i>=0;i--){const c=countries[i],p=this.worldToScreen(c.x,c.y),dx=sx-p.x,dy=sy-p.y;if(dx*dx+dy*dy<=(c.radius+7)*(c.radius+7))return c;}
     return null;
   }
 }
