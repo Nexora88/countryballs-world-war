@@ -1,10 +1,12 @@
 import { COUNTRIES } from '../data/countries.js';
 import { Country } from './Country.js';
+import { CombatSystem } from './Army.js';
+import { AIController } from './AI.js';
+import { EconomySystem } from './Economy.js';
+import { EventSystem } from './Events.js';
 
 /**
  * World — The living simulation
- * Holds all countries, manages time, relations initialization,
- * and will later drive cascade events & AI turns.
  */
 export class World {
   constructor() {
@@ -13,9 +15,14 @@ export class World {
     this.day = 1;
     this.month = 1;
     this.year = 2026;
-    this.speed = 1; // 0 = paused, 1-3 = speed levels
+    this.speed = 1;
     this.tickAccumulator = 0;
-    this.dayLength = 1200; // ms of real time per game day at speed 1
+    this.dayLength = 1400;
+
+    this.combat = null;
+    this.ai = null;
+    this.economy = null;
+    this.events = null;
 
     this.init();
   }
@@ -26,6 +33,11 @@ export class World {
       this.countries.set(country.id, country);
     }
     this.initializeRelations();
+
+    this.combat = new CombatSystem(this);
+    this.economy = new EconomySystem(this);
+    this.events = new EventSystem(this, this.combat, this.economy);
+    this.ai = new AIController(this, this.combat);
   }
 
   initializeRelations() {
@@ -37,7 +49,6 @@ export class World {
         const b = list[j];
 
         let score = 0;
-
         if (a.region === b.region) score += 15;
         score += this.characterAffinity(a.characterId, b.characterId);
         score += this.thematicBias(a.id, b.id);
@@ -54,7 +65,6 @@ export class World {
       if (charA === 'AGGRESSIVE') return -10;
       return 12;
     }
-
     const pairs = {
       'DIPLOMATIC_ISOLATIONIST': 8,
       'DIPLOMATIC_OPPORTUNIST': 5,
@@ -63,7 +73,6 @@ export class World {
       'IDEOLOGUE_DIPLOMATIC': -8,
       'ISOLATIONIST_AGGRESSIVE': -15
     };
-
     const key1 = `${charA}_${charB}`;
     const key2 = `${charB}_${charA}`;
     return pairs[key1] ?? pairs[key2] ?? 0;
@@ -71,23 +80,11 @@ export class World {
 
   thematicBias(idA, idB) {
     const biases = {
-      'usa_china': -25,
-      'usa_russia': -30,
-      'usa_uk': 25,
-      'usa_canada': 35,
-      'usa_japan': 20,
-      'usa_israel': 30,
-      'china_japan': -20,
-      'china_india': -15,
-      'russia_poland': -25,
-      'russia_germany': -10,
-      'germany_france': 20,
-      'uk_france': 10,
-      'iran_israel': -45,
-      'iran_saudi': -30,
-      'turkey_greece': -20
+      'usa_china': -25, 'usa_russia': -30, 'usa_uk': 25, 'usa_canada': 35,
+      'usa_japan': 20, 'usa_israel': 30, 'china_japan': -20, 'china_india': -15,
+      'russia_poland': -25, 'russia_germany': -10, 'germany_france': 20,
+      'uk_france': 10, 'iran_israel': -45, 'iran_saudi': -30, 'turkey_greece': -20
     };
-
     const key1 = `${idA}_${idB}`;
     const key2 = `${idB}_${idA}`;
     return biases[key1] ?? biases[key2] ?? 0;
@@ -98,47 +95,37 @@ export class World {
       const prev = this.countries.get(this.playerId);
       if (prev) prev.isPlayer = false;
     }
-
     this.playerId = countryId;
     const country = this.countries.get(countryId);
     if (country) {
       country.isPlayer = true;
-      country.gold += 80;
+      country.gold += 100;
     }
   }
 
-  getPlayer() {
-    return this.countries.get(this.playerId);
-  }
-
-  getCountry(id) {
-    return this.countries.get(id);
-  }
-
-  getAllCountries() {
-    return [...this.countries.values()];
-  }
+  getPlayer() { return this.countries.get(this.playerId); }
+  getCountry(id) { return this.countries.get(id); }
+  getAllCountries() { return [...this.countries.values()]; }
 
   setSpeed(speed) {
     this.speed = Math.max(0, Math.min(3, speed));
   }
 
-  /**
-   * Advance the world. dt is real milliseconds.
-   */
   update(dt) {
     if (this.speed === 0) return;
 
     const gameSpeed = [0, 1, 2.5, 5][this.speed];
     this.tickAccumulator += dt * gameSpeed;
 
-    // One game day passes every dayLength ms at speed 1
     while (this.tickAccumulator >= this.dayLength) {
       this.tickAccumulator -= this.dayLength;
       this.advanceDay();
     }
 
-    // Continuous soft updates (economy trickle etc.)
+    // Continuous systems
+    this.combat.update(dt * gameSpeed);
+    this.ai.update(dt, gameSpeed);
+
     for (const country of this.countries.values()) {
       country.tick(dt * gameSpeed / 1000);
     }
@@ -155,18 +142,23 @@ export class World {
       }
     }
 
-    // Future: trigger AI decisions, cascade checks, random events here
+    this.economy.dailyTick();
+    this.events.update();
+
+    // AI light economy investments
+    for (const c of this.getAllCountries()) {
+      if (c.isPlayer) continue;
+      if (Math.random() < 0.12) {
+        const pref = this.economy.getPreferredUpgrade(c);
+        if (pref) this.economy.buyUpgrade(c, pref);
+      }
+    }
   }
 
   getDateString() {
-    const months = [
-      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
-    ];
+    const months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
     return `${this.day} ${months[this.month - 1]} ${this.year}`;
   }
-
-  // --- Diplomacy helpers ---
 
   declareWar(attackerId, defenderId) {
     const attacker = this.getCountry(attackerId);
@@ -176,12 +168,8 @@ export class World {
 
     attacker.atWarWith.add(defenderId);
     defender.atWarWith.add(attackerId);
-
-    // Relation crash
     attacker.setRelation(defenderId, -90);
     defender.setRelation(attackerId, -90);
-
-    // Cascade seed: allies may join later
     return true;
   }
 
@@ -193,10 +181,8 @@ export class World {
 
     a.allies.add(bId);
     b.allies.add(aId);
-
     a.modifyRelation(bId, 25);
     b.modifyRelation(aId, 25);
-
     return true;
   }
 }
