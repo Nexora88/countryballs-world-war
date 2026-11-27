@@ -11,7 +11,6 @@
 </head>
 <body>
   <div id="app">
-    <!-- Loading Screen -->
     <div id="loading-screen" class="screen active">
       <div class="loading-content">
         <div class="logo">COUNTRYBALLS</div>
@@ -23,7 +22,6 @@
       </div>
     </div>
 
-    <!-- Main Menu -->
     <div id="main-menu" class="screen">
       <div class="menu-content">
         <div class="menu-logo">
@@ -36,47 +34,30 @@
           <button class="btn secondary" id="btn-continue" disabled>Devam Et</button>
           <button class="btn secondary" id="btn-settings">Ayarlar</button>
         </div>
-        <div class="version">v0.1.0 — Foundation</div>
+        <div class="version">v0.3.0 — Map · Sound · Diplomacy · Victory</div>
       </div>
     </div>
 
-    <!-- Country Selection -->
     <div id="country-select" class="screen">
       <div class="select-header">
         <h1>Ülkeni Seç</h1>
         <p>Her ülkenin kendine has bir karakteri vardır</p>
       </div>
-      <div class="country-grid" id="country-grid">
-        <!-- Countries will be injected here -->
-      </div>
+      <div class="country-grid" id="country-grid"></div>
       <div class="select-footer">
         <button class="btn secondary" id="btn-back-menu">Geri</button>
         <button class="btn primary" id="btn-start-game" disabled>Başla</button>
       </div>
     </div>
 
-    <!-- Game Screen -->
     <div id="game-screen" class="screen">
       <canvas id="game-canvas"></canvas>
 
-      <!-- Top Bar -->
       <div id="top-bar">
-        <div class="resource" title="Altın">
-          <span class="icon">◈</span>
-          <span id="res-gold">0</span>
-        </div>
-        <div class="resource" title="Asker">
-          <span class="icon">⚔</span>
-          <span id="res-manpower">0</span>
-        </div>
-        <div class="resource" title="İstikrar">
-          <span class="icon">⚖</span>
-          <span id="res-stability">100%</span>
-        </div>
-        <div class="resource" title="Teknoloji">
-          <span class="icon">⚙</span>
-          <span id="res-tech">1</span>
-        </div>
+        <div class="resource" title="Altın"><span class="icon">◈</span><span id="res-gold">0</span></div>
+        <div class="resource" title="Asker"><span class="icon">⚔</span><span id="res-manpower">0</span></div>
+        <div class="resource" title="İstikrar"><span class="icon">⚖</span><span id="res-stability">100%</span></div>
+        <div class="resource" title="Teknoloji"><span class="icon">⚙</span><span id="res-tech">1</span></div>
         <div class="spacer"></div>
         <div class="date" id="game-date">1 Ocak 2026</div>
         <div class="speed-controls">
@@ -87,7 +68,6 @@
         </div>
       </div>
 
-      <!-- Side Panel -->
       <div id="side-panel" class="hidden">
         <div class="panel-header">
           <div class="country-ball-preview" id="panel-ball"></div>
@@ -98,43 +78,17 @@
           <button class="close-btn" id="panel-close">×</button>
         </div>
         <div class="panel-body">
-          <div class="stat-row">
-            <span>Askeri Güç</span>
-            <div class="bar"><div class="fill" id="stat-military"></div></div>
-          </div>
-          <div class="stat-row">
-            <span>Ekonomi</span>
-            <div class="bar"><div class="fill" id="stat-economy"></div></div>
-          </div>
-          <div class="stat-row">
-            <span>İstikrar</span>
-            <div class="bar"><div class="fill" id="stat-stability"></div></div>
-          </div>
-          <div class="stat-row">
-            <span>Teknoloji</span>
-            <div class="bar"><div class="fill" id="stat-tech"></div></div>
-          </div>
-
-          <div class="panel-section">
-            <h3>Diplomasi</h3>
-            <div class="action-buttons" id="diplomacy-actions">
-              <!-- Dynamic buttons -->
-            </div>
-          </div>
-
-          <div class="panel-section">
-            <h3>Askeri</h3>
-            <div class="action-buttons" id="military-actions">
-              <!-- Dynamic buttons -->
-            </div>
-          </div>
+          <div class="stat-row"><span>Askeri Güç</span><div class="bar"><div class="fill" id="stat-military"></div></div></div>
+          <div class="stat-row"><span>Ekonomi</span><div class="bar"><div class="fill" id="stat-economy"></div></div></div>
+          <div class="stat-row"><span>İstikrar</span><div class="bar"><div class="fill" id="stat-stability"></div></div></div>
+          <div class="stat-row"><span>Teknoloji</span><div class="bar"><div class="fill" id="stat-tech"></div></div></div>
+          <div class="panel-section"><h3>Diplomasi</h3><div class="action-buttons" id="diplomacy-actions"></div></div>
+          <div class="panel-section"><h3>Askeri</h3><div class="action-buttons" id="military-actions"></div></div>
         </div>
       </div>
 
-      <!-- Bottom Notifications -->
       <div id="notifications"></div>
 
-      <!-- Event Modal -->
       <div id="event-modal" class="modal hidden">
         <div class="modal-content">
           <h2 id="event-title">Olay</h2>
