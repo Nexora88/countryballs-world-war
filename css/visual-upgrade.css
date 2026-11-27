@@ -1,0 +1,55 @@
+
+/* Sovereign visual upgrade — responsive HUD, glass panels and motion polish */
+:root {
+  --bg-deep:#07111f; --bg-panel:rgba(11,22,37,.94); --bg-elevated:#15283c;
+  --bg-hover:#203951; --border:rgba(139,184,214,.17); --border-strong:rgba(139,184,214,.34);
+  --text-primary:#edf6ff; --text-secondary:#a8bdce; --text-muted:#71889d;
+  --accent:#45a8f5; --accent-hover:#76c4ff; --accent-dim:rgba(69,168,245,.16);
+  --success:#4bd5a2; --warning:#ffc15a; --danger:#ff6573;
+  --radius:13px; --shadow:0 18px 55px rgba(0,0,0,.42);
+}
+body { background:radial-gradient(ellipse at 50% 0%,#122a40 0%,#07111f 65%); }
+#main-menu { background:radial-gradient(ellipse at 50% 36%,rgba(35,104,151,.22),transparent 42%),radial-gradient(ellipse at 15% 85%,rgba(39,92,128,.12),transparent 35%),#07111f; }
+.menu-logo .logo { text-shadow:0 0 32px rgba(69,168,245,.3); letter-spacing:.12em; }
+.subtitle { color:#67bdff; text-shadow:0 0 20px rgba(69,168,245,.38); }
+.tagline { letter-spacing:.02em; }
+.btn { border-radius:12px; font-weight:650; letter-spacing:.01em; }
+.btn.primary { background:linear-gradient(135deg,#2585d2,#4bb7fa); box-shadow:0 8px 24px rgba(32,139,220,.22),inset 0 1px rgba(255,255,255,.22); }
+.btn.primary:hover:not(:disabled) { background:linear-gradient(135deg,#3a9be8,#75caff); box-shadow:0 12px 30px rgba(32,139,220,.32); }
+.btn.secondary { background:linear-gradient(145deg,rgba(28,48,68,.95),rgba(15,30,47,.95)); border-color:rgba(140,190,220,.19); }
+.country-card { background:linear-gradient(150deg,rgba(24,46,66,.96),rgba(12,25,40,.96)); border-color:rgba(140,190,220,.15); box-shadow:0 8px 24px rgba(0,0,0,.16); }
+.country-card:hover { border-color:rgba(90,178,240,.58); box-shadow:0 12px 28px rgba(0,0,0,.24); }
+.country-card .ball { box-shadow:0 5px 14px rgba(0,0,0,.35),inset 0 2px 5px rgba(255,255,255,.2); }
+#top-bar { height:58px; padding:0 22px; gap:20px; background:rgba(7,17,31,.88); border-bottom-color:rgba(133,187,221,.18); box-shadow:0 8px 26px rgba(0,0,0,.18); }
+.resource { padding:7px 10px; border:1px solid rgba(139,184,214,.11); border-radius:10px; background:rgba(22,43,62,.52); font-size:.88rem; }
+.resource .icon { color:#75c7ff; }
+.date { color:#c0d6e7; font-variant-numeric:tabular-nums; }
+.speed-btn { border-radius:8px; background:#14283c; border-color:rgba(139,184,214,.17); }
+.speed-btn.active { background:rgba(69,168,245,.18); box-shadow:0 0 14px rgba(69,168,245,.12); }
+#side-panel { top:58px; height:calc(100% - 58px); width:min(340px,90vw); background:rgba(8,20,34,.96); border-left-color:rgba(139,184,214,.2); box-shadow:-18px 0 50px rgba(0,0,0,.25); }
+.panel-header { background:linear-gradient(135deg,rgba(37,91,130,.22),transparent); }
+.country-ball-preview { box-shadow:0 5px 18px rgba(0,0,0,.28),inset 0 2px 5px rgba(255,255,255,.22); }
+.stat-row { margin-bottom:13px; }
+.bar { height:7px; background:#1b3044; }
+.bar .fill { background:linear-gradient(90deg,#2585d2,#69c5ff); box-shadow:0 0 10px rgba(69,168,245,.25); }
+.notification { background:rgba(9,24,40,.96); border-color:rgba(120,184,220,.24); box-shadow:0 12px 34px rgba(0,0,0,.35); backdrop-filter:blur(14px); }
+.modal-content { background:linear-gradient(145deg,#142b40,#0b1a2b); border-color:rgba(139,184,214,.25); }
+#game-canvas { touch-action:manipulation; }
+@media (max-width:760px) {
+  #top-bar { height:auto; min-height:58px; padding:7px 9px; gap:5px; flex-wrap:wrap; justify-content:space-between; }
+  .resource { padding:5px 7px; gap:4px; font-size:.75rem; }
+  .date { font-size:.72rem; }
+  .speed-btn { width:29px; height:28px; }
+  #side-panel { top:76px; height:calc(100% - 76px); }
+  .select-header { margin-bottom:16px; }
+  #country-select { padding:18px 12px; }
+  .country-grid { grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:9px; }
+  .country-card { padding:13px 9px; }
+  .menu-logo .logo { font-size:2.35rem; }
+  .menu-content { width:min(90vw,420px); }
+}
+@media (max-height:560px) {
+  #top-bar { height:48px; }
+  #side-panel { top:48px; height:calc(100% - 48px); }
+  .country-grid { grid-template-columns:repeat(auto-fill,minmax(125px,1fr)); }
+}
