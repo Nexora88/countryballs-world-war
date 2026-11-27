@@ -2,90 +2,63 @@
 
 > Not another clone. A personality-driven grand strategy experience.
 
-**Countryballs: Sovereign** is a web-based, no-install strategy game that takes the classic Countryballs aesthetic and turns it into a deep, systemic, and uniquely reactive world.
-
-While most Countryballs games are simple "drag balls to attack" toys, this one focuses on **national character**, **internal stability**, **cascade events**, and multiple paths to victory.
+**Countryballs: Sovereign** takes the classic Countryballs aesthetic and turns it into a living, reactive world where every nation has a character, internal pressures, and agency.
 
 ---
 
-## Core Identity
+## What makes it different
 
-### 1. National Character System
-Every country has a deep personality archetype that drives its AI decisions:
-
-- **Aggressive** – Prefers military solutions, low tolerance for weakness
-- **Diplomatic** – Seeks alliances, avoids unnecessary wars
-- **Opportunist** – Switches sides for maximum gain
-- **Ideologue** – Acts according to ideological principles
-- **Isolationist** – Avoids entanglement, focuses on internal strength
-
-Two countries facing the same situation will react completely differently based on their character.
-
-### 2. Stability & Internal Politics
-Countries are not immortal entities. They have:
-- Stability score
-- Government type
-- Internal factions
-- Risk of civil war, coup, or revolution
-
-A strong military means nothing if your country collapses from within.
-
-### 3. Soft Power & Influence
-Victory is not only about armies. You can win through:
-- Cultural influence
-- Economic dependency
-- Technological superiority
-- Diplomatic isolation of rivals
-
-### 4. Cascade Events
-Actions have consequences that ripple across the world. Declaring war on one country can drag entire alliances into conflict, trigger refugee crises, or cause economic shockwaves.
-
-### 5. Multiple Victory Conditions
-- **Military Domination** – Control the majority of the world
-- **Economic Hegemony** – Become the indispensable economic power
-- **Diplomatic Unity** – Form a dominant power bloc
-- **Technological Singularity** – Achieve overwhelming tech advantage
-- **Nuclear Monopoly** – Be the sole nuclear power (extremely high risk)
+- **National Character System** — Aggressive, Diplomatic, Opportunist, Ideologue, Isolationist. AI decisions are filtered through personality.
+- **Living countries** — Stability, internal crises, economic shocks, cascading alliances.
+- **Real consequences** — Sending an army can drag entire blocs into war. Using nuclear weapons turns the world against you.
+- **Multiple paths** — Military, economic, diplomatic, technological, or nuclear monopoly.
 
 ---
 
-## Technical Approach
+## Current Systems (v0.2)
 
-- Pure HTML5 + Canvas + modern JavaScript (no heavy frameworks)
-- Zero installation – open the link and play
-- Designed for both desktop and mobile
-- Clean, modular architecture for long-term expansion
+| System | Status |
+|--------|--------|
+| Country personalities & relations | ✅ |
+| Time & speed control | ✅ |
+| Army movement & combat resolution | ✅ |
+| Character-driven AI | ✅ |
+| Economy + upgrades | ✅ |
+| Cascade events (ally join, crises) | ✅ |
+| Nuclear weapons | ✅ |
+| Soft visual feedback & expressions | ✅ |
+| Sound | ⏳ Planned |
+| Deeper province system | ⏳ Later |
 
 ---
 
-## Project Status
+## How to Play
 
-**Phase 1 – Foundation** (current)
-- Core systems architecture
-- Country data model with personalities
-- Map rendering foundation
-- Basic UI shell
+1. Open `index.html` in a modern browser  
+   or run a local server: `npx serve .`
+2. Choose a country (each has a different personality).
+3. Click countries to open the side panel.
+4. Invest in military / economy / stability / tech.
+5. Form alliances or declare war and send armies.
+6. Watch the AI act according to their characters.
+7. Nuclear is available only after high tech + heavy investment — and the world will hate you for it.
 
-**Phase 2 – Playable Core**
-- Combat & movement
-- Diplomacy
-- Economy loop
-- Basic AI with personality
+---
 
-**Phase 3 – Depth**
-- Cascade events
-- Internal politics
-- Advanced AI
-- Multiple victory paths
+## Controls
+
+- **Click** a country → open details & actions
+- **Speed buttons** (❚❚ ▶ ▶▶ ▶▶▶) → control time
+- Side panel → upgrades (when viewing yourself), diplomacy & military actions (when viewing others)
 
 ---
 
 ## Philosophy
 
-We are not trying to make the biggest or the most complex strategy game.  
+We are not trying to make the biggest strategy game.  
 We are trying to make the one that feels the most **alive** and **distinct**.
 
-Every system should reinforce the idea that countries are characters with agency, not just colored territories.
+Countries are characters with agency, not just colored territories.
 
 ---
 
