@@ -20,7 +20,7 @@ export class AIController {
     if (this.decisionCooldown < this.decisionInterval) return;
     this.decisionCooldown = 0;
 
-    const countries = this.world.getAllCountries().filter(c => !c.isPlayer);
+    const countries = this.world.getAllCountries().filter(c => !c.isPlayer && c.controllerId === c.id);
 
     // Shuffle so order is not deterministic
     for (let i = countries.length - 1; i > 0; i--) {
@@ -97,13 +97,11 @@ export class AIController {
   findPotentialTargets(country) {
     return this.world.getAllCountries().filter(t => {
       if (t.id === country.id) return false;
+      if (!this.world.areAdjacent(country.id, t.id)) return false;
+      if (t.controllerId === country.id) return false;
       if (country.isAlliedWith(t.id)) return false;
       if (country.isAtWarWith(t.id)) return false;
-      // Prefer somewhat nearby (simple distance check)
-      const dx = country.x - t.x;
-      const dy = country.y - t.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      return dist < 0.45; // not across the whole world for now
+      return true;
     });
   }
 
