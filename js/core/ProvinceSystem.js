@@ -60,7 +60,7 @@ export class ProvinceSystem {
     const defender = this.world.getCountry(target.ownerId);
     const attacker = this.world.getCountry(attackerId);
     const attackPower = committed * (0.85 + attacker.tech * 0.035) * (0.9 + attacker.character.aggression * 0.2);
-    const defensePower = (target.troops + target.garrisonBonus || target.troops) *
+    const defensePower = target.troops *
       (0.85 + (defender?.tech || 0) * 0.035) * (0.9 + target.stability / 500);
     const ratio = attackPower / Math.max(1, defensePower);
     const won = ratio > 1.08;
@@ -74,10 +74,6 @@ export class ProvinceSystem {
     target.occupied = true;
     target.troops = Math.max(4, Math.floor(committed * 0.25));
     target.stability = Math.max(20, target.stability - 18);
-    for (const cityId of target.cities) {
-      const city = this.getCity(cityId);
-      if (city) city.ownerId = attackerId;
-    }
     attacker.gold += 12;
     return { ok:true, captured:true, ratio, region:target.name };
   }
@@ -88,7 +84,7 @@ export class ProvinceSystem {
     const source = this.getRegion(sourceRegionId);
     if (!attacker || !city || !source || source.ownerId !== attackerId) return { ok:false, reason:'invalid-source' };
     const targetRegion = this.getRegion(city.regionId);
-    if (!targetRegion || targetRegion.ownerId === attackerId || !this.areAdjacent(sourceRegionId, targetRegion.id)) {
+    if (!targetRegion || city.ownerId === attackerId || !this.areAdjacent(sourceRegionId, targetRegion.id)) {
       return { ok:false, reason:'city-not-reachable' };
     }
     const attackPower = source.troops * (0.9 + attacker.tech * 0.03);
