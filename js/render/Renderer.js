@@ -341,6 +341,27 @@ export class Renderer {
     return inside;
   }
 
+  hitTestWorldCountry(sx, sy) {
+    for (let i = WORLD_COUNTRIES.features.length - 1; i >= 0; i--) {
+      const feature = WORLD_COUNTRIES.features[i];
+      const geometry = feature.geometry;
+      if (!geometry) continue;
+      const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.type === 'MultiPolygon' ? geometry.coordinates : [];
+      for (const polygon of polygons) {
+        if (!polygon[0] || !this.pointInRing(sx, sy, polygon[0])) continue;
+        let inHole = false;
+        for (let h = 1; h < polygon.length; h++) if (this.pointInRing(sx, sy, polygon[h])) inHole = true;
+        if (inHole) continue;
+        const ring = polygon[0];
+        const lon = ring.reduce((sum, p) => sum + p[0], 0) / ring.length;
+        const lat = ring.reduce((sum, p) => sum + p[1], 0) / ring.length;
+        return { iso: feature.properties.iso, id: feature.properties.iso, name: feature.properties.name,
+          x: (lon + 180) / 360, y: (90 - lat) / 180 };
+      }
+    }
+    return null;
+  }
+
   hitTestAdminTerritory(sx, sy, world) {
     if (!world.adminTerritories || this.camera.zoom < 1.15) return null;
     const features = world.adminTerritories.getVisibleFeatures();
