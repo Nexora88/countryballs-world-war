@@ -7,7 +7,7 @@
  *   node scripts/download-admin-boundaries.mjs --levels=ADM1,ADM2
  *   node scripts/download-admin-boundaries.mjs --iso=TUR,USA --levels=ADM1,ADM2
  */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const ROOT = process.cwd();
@@ -46,7 +46,7 @@ async function mapLimit(items, limit, worker) {
 
 await mkdir(OUT, { recursive: true });
 const manifestPath = path.join(OUT, 'manifest.json');
-const manifest = { schemaVersion: 1, provider: 'geoBoundaries gbOpen', api: API, generatedAt: null, datasets: {} };
+let manifest = { schemaVersion: 1, provider: 'geoBoundaries gbOpen', api: API, generatedAt: null, datasets: {} };\ntry { manifest = JSON.parse(await readFile(manifestPath, 'utf8')); } catch {}
 
 for (const level of levels) {
   console.log(`[catalog] ${level}`);
