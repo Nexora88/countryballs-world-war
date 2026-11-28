@@ -156,7 +156,9 @@ function setupGameUI() {
       }).catch(error => notify(error.message));
     } else if (mapCountryHit) {
       renderer.focusOnCountry(mapCountryHit, 2.2);
-      openWorldCountryPanel(mapCountryHit);
+      const playableCountry = world.getCountry(world.adminTerritories.getCountryId(mapCountryHit.iso));
+      if (playableCountry) openSidePanel(playableCountry);
+      else openWorldCountryPanel(mapCountryHit);
       world.adminTerritories.loadLevel(mapCountryHit.iso, 'ADM1').then(layer => {
         world.adminTerritories.buildAdjacency(world.adminTerritories.getLoadedFeatures('ADM1'));
         notify(`${mapCountryHit.name}: ${layer.features.length} idari bölge yüklendi.`);
