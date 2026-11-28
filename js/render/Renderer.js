@@ -1,3 +1,5 @@
+import { WORLD_COUNTRIES } from '../data/world-countries.js';
+
 /**
  * Renderer — Sovereign visual pass.
  * Original Canvas 2D artwork: layered ocean, stylized geographic land,
@@ -68,67 +70,34 @@ export class Renderer {
 
   drawWorldMap() {
     const ctx = this.ctx;
-    // Hand-authored simplified continent silhouettes; intentionally original,
-    // pending replacement with attributed Natural Earth / CC0 vector geometry.
-    const continents = [
-      [[.035,.19],[.075,.10],[.15,.055],[.23,.09],[.285,.17],[.27,.25],[.235,.32],[.205,.43],[.16,.49],[.105,.45],[.075,.35],[.045,.27]],
-      [[.105,.48],[.15,.48],[.18,.54],[.15,.59],[.11,.55]],
-      [[.17,.57],[.22,.52],[.29,.54],[.345,.63],[.33,.73],[.30,.82],[.265,.92],[.22,.88],[.19,.78],[.16,.66]],
-      [[.275,.06],[.33,.035],[.38,.075],[.365,.14],[.31,.17]],
-      [[.405,.21],[.435,.17],[.48,.18],[.515,.23],[.515,.29],[.49,.34],[.45,.35],[.415,.31],[.39,.26]],
-      [[.49,.12],[.525,.085],[.55,.13],[.56,.20],[.535,.25],[.505,.20]],
-      [[.515,.27],[.56,.24],[.605,.28],[.61,.34],[.58,.39],[.535,.38],[.50,.33]],
-      [[.425,.40],[.48,.37],[.55,.39],[.60,.46],[.625,.57],[.60,.66],[.565,.75],[.515,.80],[.47,.75],[.435,.65],[.405,.52]],
-      [[.56,.43],[.62,.41],[.665,.47],[.655,.54],[.615,.58],[.575,.54]],
-      [[.555,.12],[.64,.085],[.74,.085],[.84,.105],[.93,.14],[.955,.21],[.91,.27],[.82,.30],[.72,.29],[.63,.27],[.57,.23]],
-      [[.63,.30],[.70,.285],[.755,.33],[.735,.39],[.675,.42],[.625,.37]],
-      [[.675,.42],[.725,.395],[.775,.445],[.79,.52],[.755,.61],[.715,.58],[.685,.51]],
-      [[.735,.29],[.80,.245],[.88,.255],[.93,.31],[.91,.39],[.865,.445],[.80,.43],[.755,.39]],
-      [[.88,.32],[.91,.30],[.935,.35],[.91,.39]],
-      [[.925,.34],[.955,.32],[.98,.37],[.955,.42]],
-      [[.77,.49],[.84,.475],[.91,.515],[.93,.57],[.885,.64],[.825,.65],[.78,.59]],
-      [[.80,.64],[.86,.625],[.93,.66],[.90,.71],[.83,.70]],
-      [[.79,.73],[.855,.69],[.94,.70],[.98,.77],[.96,.85],[.91,.89],[.85,.87],[.80,.82]],
-      [[.965,.87],[.98,.85],[.995,.90],[.98,.94]]
-    ];
+    const playableIso = { canada:'CAN',usa:'USA',mexico:'MEX',brazil:'BRA',uk:'GBR',france:'FRA',germany:'DEU',poland:'POL',russia:'RUS',turkey:'TUR',egypt:'EGY',israel:'ISR',saudi:'SAU',iran:'IRN',india:'IND',china:'CHN',south_korea:'KOR',japan:'JPN',indonesia:'IDN',australia:'AUS' };
+    const countryByIso = new Map(Object.entries(playableIso).map(([id,iso])=>[iso,id]));
+    const worldFill = ctx.createLinearGradient(0,this.height*.12,this.width*.2,this.height*.88);
+    worldFill.addColorStop(0,'#34576b');worldFill.addColorStop(.52,'#254558');worldFill.addColorStop(1,'#193447');
+    for(const feature of WORLD_COUNTRIES.features){
+      const id=countryByIso.get(feature.properties.iso),fill=id?this.countryColor(id):worldFill;
+      ctx.beginPath();this.traceGeoGeometry(feature.geometry);ctx.fillStyle=fill;
+      ctx.shadowColor='rgba(0,0,0,.24)';ctx.shadowBlur=id?7:3;ctx.fill();ctx.shadowBlur=0;
+      ctx.strokeStyle=id?'rgba(157,207,222,.72)':'rgba(139,183,201,.36)';ctx.lineWidth=id?1.05:.72;ctx.stroke();
+    }
+    ctx.save();ctx.strokeStyle='rgba(159,203,226,.10)';ctx.lineWidth=1;
+    for(let lat=-60;lat<=60;lat+=30){const y=this.worldToScreen(0,(90-lat)/180).y;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(this.width,y);ctx.stroke();}
+    for(let lon=-150;lon<=180;lon+=30){const x=this.worldToScreen((lon+180)/360,0).x;ctx.beginPath();ctx.moveTo(x,65);ctx.lineTo(x,this.height);ctx.stroke();}
+    ctx.restore();
+  }
 
-    for (const poly of continents) {
-      const pts = poly.map(([x,y]) => this.worldToScreen(x,y));
-      ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i=1;i<pts.length;i++) {
-        const prev=pts[i-1], cur=pts[i];
-        const mx=(prev.x+cur.x)/2, my=(prev.y+cur.y)/2;
-        ctx.quadraticCurveTo(prev.x,prev.y,mx,my);
-      }
-      ctx.closePath();
-      const land = ctx.createLinearGradient(0, this.height*.12, this.width*.2, this.height*.88);
-      land.addColorStop(0,'#29465b'); land.addColorStop(.5,'#1d394c'); land.addColorStop(1,'#142c40');
-      ctx.shadowColor='rgba(0,0,0,.48)'; ctx.shadowBlur=22; ctx.shadowOffsetY=9;
-      ctx.fillStyle=land; ctx.fill();
-      ctx.shadowBlur=0; ctx.shadowOffsetY=0;
-      ctx.strokeStyle='rgba(126,184,204,.52)'; ctx.lineWidth=1.35; ctx.stroke();
-      ctx.strokeStyle='rgba(190,220,222,.09)'; ctx.lineWidth=4; ctx.stroke();
+  traceGeoGeometry(geometry){
+    const polygons=geometry.type==='Polygon'?[geometry.coordinates]:geometry.coordinates;
+    for(const polygon of polygons)for(const ring of polygon){if(!ring.length)continue;
+      const first=ring[0],start=this.worldToScreen((first[0]+180)/360,(90-first[1])/180);this.ctx.moveTo(start.x,start.y);
+      for(let i=1;i<ring.length;i++){const point=ring[i],p=this.worldToScreen((point[0]+180)/360,(90-point[1])/180);this.ctx.lineTo(p.x,p.y);}
+      this.ctx.closePath();
     }
+  }
 
-    // Terrain texture: deterministic specks, no runtime randomness.
-    for (let i=0;i<180;i++) {
-      const x=((i*7919)%997)/997*this.width;
-      const y=90+((i*3571)%887)/887*(this.height-130);
-      ctx.beginPath(); ctx.arc(x,y, i%5===0?1.5:.7,0,Math.PI*2);
-      ctx.fillStyle='rgba(172,205,192,.10)'; ctx.fill();
-    }
-
-    // Latitude / longitude guides.
-    ctx.strokeStyle='rgba(159,203,226,.11)'; ctx.lineWidth=1;
-    for(let i=1;i<6;i++){
-      const y=this.worldToScreen(0,i/6).y;
-      ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(this.width,y);ctx.stroke();
-    }
-    for(let i=1;i<12;i++){
-      const x=this.worldToScreen(i/12,0).x;
-      ctx.beginPath();ctx.moveTo(x,65);ctx.lineTo(x,this.height);ctx.stroke();
-    }
+  countryColor(id){
+    const colors={canada:'#8b3e49',usa:'#384b77',mexico:'#2f795d',brazil:'#397a4c',uk:'#354c80',france:'#355d9a',germany:'#8b3d3d',poland:'#a54c58',russia:'#42618e',turkey:'#a83c48',egypt:'#9b514a',israel:'#4269a8',saudi:'#3e765d',iran:'#47815b',india:'#b77b3d',china:'#a84842',south_korea:'#42658e',japan:'#a34d5b',indonesia:'#a94b4b',australia:'#3e568d'};
+    return colors[id]||'#29465b';
   }
 
   drawMapChrome() {
@@ -164,18 +133,16 @@ export class Renderer {
     ctx.beginPath();ctx.arc(pos.x,pos.y,r,0,Math.PI*2);ctx.fillStyle=body;ctx.fill();
     ctx.save();ctx.beginPath();ctx.arc(pos.x,pos.y,r*.91,0,Math.PI*2);ctx.clip();
     const colors=country.flagColors||[country.color];
-    if(colors.length>1){
-      const stripeW=(r*2.2)/colors.length;
-      colors.forEach((color,i)=>{ctx.fillStyle=color;ctx.globalAlpha=.34;ctx.fillRect(pos.x-r*1.1+i*stripeW,pos.y-r*1.1,stripeW+1,r*2.2);});
-      ctx.globalAlpha=1;
-    }
-    ctx.restore();
+    const horizontal=['germany','russia','egypt','poland','indonesia'].includes(country.id);
+    if(colors.length>1)colors.forEach((color,i)=>{ctx.fillStyle=color;ctx.globalAlpha=.66;if(horizontal){const h=r*2.2/colors.length;ctx.fillRect(pos.x-r*1.1,pos.y-r*1.1+i*h,r*2.2,h+1);}else{const w=r*2.2/colors.length;ctx.fillRect(pos.x-r*1.1+i*w,pos.y-r*1.1,w+1,r*2.2);}});
+    ctx.globalAlpha=1;this.drawFlagEmblem(ctx,pos.x,pos.y,r,country);ctx.restore();
     ctx.beginPath();ctx.arc(pos.x,pos.y,r,0,Math.PI*2);
     ctx.strokeStyle='rgba(235,247,255,.75)';ctx.lineWidth=1.8;ctx.stroke();
     ctx.beginPath();ctx.arc(pos.x-r*.28,pos.y-r*.34,r*.23,Math.PI*1.05,Math.PI*1.65);
     ctx.strokeStyle='rgba(255,255,255,.48)';ctx.lineWidth=2;ctx.stroke();
 
     this.drawEyes(ctx,pos.x,pos.y,r,country);
+    this.drawAccessory(ctx,pos.x,pos.y,r,country);
     if(country.nuclear){
       ctx.beginPath();ctx.arc(pos.x+r*.72,pos.y-r*.7,5.5,0,Math.PI*2);ctx.fillStyle='#ffc857';ctx.fill();
       ctx.strokeStyle='#6b4b13';ctx.lineWidth=1;ctx.stroke();
@@ -187,6 +154,29 @@ export class Renderer {
     ctx.strokeStyle=country.isPlayer?'rgba(88,176,255,.8)':'rgba(175,205,225,.18)';ctx.lineWidth=1;ctx.stroke();
     ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#e9f4fc';ctx.fillText(label,pos.x,pos.y+r+13.5);
     if(country.isPlayer){ctx.font='800 8px Inter';ctx.fillStyle='#79c7ff';ctx.fillText('YOU',pos.x,pos.y+r+31);}
+  }
+
+  drawFlagEmblem(ctx,cx,cy,r,country){
+    ctx.save();
+    if(country.id==='japan'){ctx.beginPath();ctx.arc(cx,cy,r*.34,0,Math.PI*2);ctx.fillStyle='#bc002d';ctx.fill();}
+    else if(country.id==='turkey'){ctx.beginPath();ctx.arc(cx-r*.05,cy,r*.34,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.beginPath();ctx.arc(cx+r*.07,cy-r*.06,r*.28,0,Math.PI*2);ctx.fillStyle=country.color;ctx.fill();this.drawStar(ctx,cx+r*.34,cy-r*.02,r*.11,'#fff');}
+    else if(country.id==='brazil'){ctx.beginPath();ctx.moveTo(cx,cy-r*.34);ctx.lineTo(cx+r*.43,cy);ctx.lineTo(cx,cy+r*.34);ctx.lineTo(cx-r*.43,cy);ctx.closePath();ctx.fillStyle='#ffdf00';ctx.fill();ctx.beginPath();ctx.arc(cx,cy,r*.19,0,Math.PI*2);ctx.fillStyle='#002776';ctx.fill();}
+    else if(country.id==='usa'){for(let row=0;row<3;row++)for(let col=0;col<3;col++)this.drawStar(ctx,cx-r*.36+col*r*.18,cy-r*.26+row*r*.22,r*.045,'#fff');}
+    else if(country.id==='china'){this.drawStar(ctx,cx-r*.18,cy-r*.16,r*.17,'#ffde00');this.drawStar(ctx,cx+r*.18,cy-r*.28,r*.065,'#ffde00');}
+    else if(country.id==='india'){ctx.beginPath();ctx.arc(cx,cy,r*.17,0,Math.PI*2);ctx.strokeStyle='#1b3f91';ctx.lineWidth=1.5;ctx.stroke();for(let i=0;i<12;i++){const a=i*Math.PI/6;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(a)*r*.16,cy+Math.sin(a)*r*.16);ctx.stroke();}}
+    else if(country.id==='germany'){ctx.beginPath();ctx.arc(cx,cy+r*.02,r*.1,0,Math.PI*2);ctx.fillStyle='#ffce00';ctx.fill();}
+    ctx.restore();
+  }
+  drawStar(ctx,cx,cy,r,color){ctx.save();ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2===0?r:r*.43,x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.restore();}
+  drawAccessory(ctx,cx,cy,r,country){
+    ctx.save();ctx.lineCap='round';
+    if(country.id==='russia'){ctx.fillStyle='#65748b';ctx.beginPath();ctx.ellipse(cx,cy-r*.72,r*.76,r*.22,0,Math.PI,Math.PI*2);ctx.fill();ctx.fillRect(cx-r*.76,cy-r*.72,r*1.52,r*.17);ctx.strokeStyle='rgba(255,255,255,.38)';ctx.lineWidth=1.2;ctx.stroke();}
+    else if(country.id==='france'){ctx.fillStyle='#8b3445';ctx.beginPath();ctx.ellipse(cx,cy-r*.77,r*.68,r*.18,-.08,Math.PI,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(cx-r*.68,cy-r*.77);ctx.quadraticCurveTo(cx,cy-r*.48,cx+r*.68,cy-r*.77);ctx.fill();}
+    else if(country.id==='uk'){ctx.strokeStyle='#d5dbe5';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-r*.42,cy-r*.68);ctx.lineTo(cx+r*.42,cy-r*.68);ctx.stroke();ctx.fillStyle='#263b68';ctx.fillRect(cx-r*.48,cy-r*.82,r*.96,r*.15);}
+    else if(country.id==='japan'){ctx.strokeStyle='#bc002d';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx-r*.72,cy-r*.65);ctx.quadraticCurveTo(cx,cy-r*.94,cx+r*.72,cy-r*.65);ctx.stroke();}
+    else if(country.id==='usa'){ctx.fillStyle='#253d68';ctx.beginPath();ctx.moveTo(cx-r*.55,cy-r*.55);ctx.lineTo(cx-r*.25,cy-r*.9);ctx.lineTo(cx+r*.05,cy-r*.55);ctx.closePath();ctx.fill();}
+    else if(country.id==='china'){ctx.fillStyle='#ffde00';ctx.beginPath();ctx.arc(cx+r*.57,cy-r*.55,r*.12,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
   }
 
   drawEyes(ctx,cx,cy,r,country){
