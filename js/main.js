@@ -133,18 +133,32 @@ function setupGameUI() {
     audio.resume();
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left, y = e.clientY - rect.top;
-    const provinceHit = renderer.hitTestProvince(x, y, world);
-    const hit = provinceHit ? null : renderer.hitTest(x, y, world);
+    const adminHit = renderer.hitTestAdminTerritory(x, y, world);
+    const provinceHit = adminHit ? null : renderer.hitTestProvince(x, y, world);
+    const hit = (adminHit || provinceHit) ? null : renderer.hitTest(x, y, world);
     for (const c of world.getAllCountries()) c.selected = false;
-    if (provinceHit) {
+    if (adminHit) {
+      openAdminTerritoryPanel(adminHit);
+    } else if (provinceHit) {
       openProvincePanel(provinceHit);
     } else if (hit) {
       hit.selected = true;
       openSidePanel(hit);
+      renderer.focusOnCountry(hit);
+      world.adminTerritories.loadLevel(hit.id, 'ADM1').then(layer => {
+        world.adminTerritories.buildAdjacency(layer.features);
+        notify(`${hit.name}: ${layer.features.length} idari bölge yüklendi.`);
+      }).catch(error => notify(error.message));
     } else {
       closeSidePanel();
     }
   };
+
+  canvas.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    renderer.zoomBy(event.deltaY < 0 ? 0.18 : -0.18);
+  }, { passive: false });
+  canvas.addEventListener('dblclick', () => renderer.resetCamera());
 
   document.getElementById('panel-close').onclick = () => {
     audio.ui();
@@ -330,6 +344,53 @@ function openSidePanel(country) {
   }
 }
 
+
+function openAdminTerritoryPanel(feature) {
+  const system = world.adminTerritories;
+  const state = system.getFeatureState(feature);
+  const props = feature.properties || {};
+  const name = props.shapeName || props.name || props.NAME_1 || 'İdari bölge';
+  const panel = document.getElementById('side-panel');
+  panel.classList.remove('hidden');
+  document.getElementById('panel-name').textContent = name;
+  document.getElementById('panel-character').textContent = `${feature.level} • ${feature.countryId.toUpperCase()}`;
+  document.getElementById('panel-character').style.color = '#75c7ff';
+  document.getElementById('panel-ball').style.background = 'linear-gradient(135deg,#34576b,#8aa7bb)';
+  document.getElementById('stat-military').style.width = Math.min(100, state.garrison) + '%';
+  document.getElementById('stat-economy').style.width = Math.min(100, state.economy) + '%';
+  document.getElementById('stat-stability').style.width = Math.min(100, state.stability) + '%';
+  document.getElementById('stat-tech').style.width = '0%';
+  const diplo = document.getElementById('diplomacy-actions');
+  const mili = document.getElementById('military-actions');
+  diplo.innerHTML = ''; mili.innerHTML = '';
+  const owner = world.getCountry(state.ownerId);
+  const info = document.createElement('div');
+  info.textContent = `Kontrol: ${owner?.name || 'Bağımsız'} • Garnizon: ${Math.floor(state.garrison)} • Ekonomi: ${Math.floor(state.economy)}`;
+  diplo.appendChild(info);
+  const player = world.getPlayer();
+  if (player && state.ownerId === player.id) {
+    addBtn(mili, 'Bu bölgede 5 asker üret', () => {
+      if (system.recruit(player.id, feature, 5)) notify('Bölgesel garnizon güçlendirildi.');
+      else notify('Yeterli altın veya insan gücü yok.');
+      openAdminTerritoryPanel(feature);
+    });
+    addBtn(mili, 'ADM2 alt bölgelerini yükle', () => {
+      system.loadLevel(feature.countryId, 'ADM2', feature.gameId).then(layer => {
+        system.buildAdjacency(layer.features);
+        renderer.focusOnCountry(world.getCountry(feature.countryId), 3.2);
+        notify(`${layer.features.length} alt bölge yüklendi.`);
+      }).catch(error => notify(error.message));
+    });
+  } else if (player) {
+    const sourceLayer = system.getLayer(player.id);
+    const source = sourceLayer?.features.find(f => system.getFeatureState(f)?.ownerId === player.id && (f.neighborIds || []).includes(feature.gameId));
+    if (source) addBtn(mili, 'Komşu bölgeden saldır', () => {
+      const result = system.attack(player.id, source, feature);
+      notify(result.captured ? `${name} ele geçirildi!` : result.ok ? 'Saldırı püskürtüldü.' : 'Saldırı yapılamadı.');
+      openAdminTerritoryPanel(feature);
+    }, true);
+  }
+}
 
 function openProvincePanel(hit) {
   const { kind, data } = hit;
