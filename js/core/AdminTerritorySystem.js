@@ -22,18 +22,20 @@ export class AdminTerritorySystem {
     this.loading = new Map();
     this.states = new Map();
     this.activeLevel = new Map();
+    this.activeLayerKey = new Map();
     this.manifest = null;
   }
 
-  getIso(countryId) { return COUNTRY_ISO[countryId] || null; }
-  layerKey(iso, level) { return `${iso}:${level}`; }
+  getIso(countryId) { return COUNTRY_ISO[countryId] || (/^[A-Z]{3}$/.test(countryId) ? countryId : null); }
+  layerKey(iso, level, parentId = null) { return `${iso}:${level}${parentId ? ':' + parentId : ''}`; }
 
   async loadLevel(countryId, level = 'ADM1', parentId = null) {
     const iso = this.getIso(countryId);
     if (!iso || !LEVELS.has(level)) throw new Error('Geçersiz ülke veya idari seviye');
-    const key = this.layerKey(iso, level);
+    const key = this.layerKey(iso, level, parentId);
     if (this.layers.has(key)) {
       this.activeLevel.set(countryId, level);
+      this.activeLayerKey.set(countryId, key);
       return this.layers.get(key);
     }
     if (this.loading.has(key)) return this.loading.get(key);
@@ -72,9 +74,10 @@ export class AdminTerritorySystem {
         }
         return { ...feature, gameId: id, countryId, level };
       });
-      const layer = { iso, countryId, level, features, loadedAt: Date.now() };
+      const layer = { iso, countryId, level, parentId, features, loadedAt: Date.now() };
       this.layers.set(key, layer);
       this.activeLevel.set(countryId, level);
+      this.activeLayerKey.set(countryId, key);
       return layer;
     })().finally(() => this.loading.delete(key));
     this.loading.set(key, task);
@@ -83,7 +86,11 @@ export class AdminTerritorySystem {
 
   getLayer(countryId, level = this.activeLevel.get(countryId) || 'ADM1') {
     const iso = this.getIso(countryId);
-    return iso ? this.layers.get(this.layerKey(iso, level)) || null : null;
+    if (!iso) return null;
+    const activeKey = this.activeLayerKey.get(countryId);
+    return (activeKey && this.layers.get(activeKey)?.level === level)
+      ? this.layers.get(activeKey)
+      : this.layers.get(this.layerKey(iso, level)) || null;
   }
 
   getFeatureState(feature) { return this.states.get(feature.gameId) || null; }
@@ -97,7 +104,8 @@ export class AdminTerritorySystem {
   getVisibleFeatures() {
     const result = [];
     for (const [countryId, level] of this.activeLevel) {
-      const layer = this.getLayer(countryId, level);
+      const key = this.activeLayerKey.get(countryId);
+      const layer = key ? this.layers.get(key) : this.getLayer(countryId, level);
       if (layer) result.push(...layer.features);
     }
     return result;
