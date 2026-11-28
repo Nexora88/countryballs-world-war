@@ -9,10 +9,10 @@ Bu oyun için hedef, ülkeleri (ADM0), birinci seviye idari birimleri (ADM1: eya
 - API biçimi: `https://www.geoboundaries.org/api/current/gbOpen/{ISO3}/{ADM_LEVEL}/`
 - Küresel katalog: `https://www.geoboundaries.org/api/current/gbOpen/ALL/{ADM_LEVEL}/`
 - Kapsam: 234 ISO kodu için metadata; ADM0–ADM5, ülkeye göre değişen kapsama; GeoJSON ve TopoJSON indirmeleri.
-- Lisans yaklaşımı: gbOpen, atıf şartıyla CC BY 4.0 uyumlu açık veri koleksiyonudur. API her sınır için kaynak, temsil edilen yıl, orijinal lisans ve lisans notlarını da sunar. Her indirilen dosyanın metadata'sı korunmalı ve atıf bilgisi kaybolmamalıdır.
+- Lisans yaklaşımı: gbOpen, açık kullanım için derlenmiş bir koleksiyondur; ancak her ülke katmanının kaynak lisansı aynı değildir. API, her sınır için gerçek `boundaryLicense`, kaynak, temsil edilen yıl ve lisans notlarını sunar. Bu projede her dosyanın kendi lisansına uyulmalı; toplu bir lisans varsayılmamalı ve atıf bilgisi kaybolmamalıdır.
 - Oyun kullanımı: ülke bazında dosya indirme ve gerektiğinde basitleştirilmiş geometri kullanma. Küresel tek GeoJSON dosyasını doğrudan Canvas'a yüklemek yerine ülke/zoom bazında yükleme yapılmalı.
 
-**Önemli:** Sınır verileri farklı kurumların farklı yıllardaki kaynaklarından derlenir. Ülkelerin ADM1/ADM2 sayısı ve güncelliği eşit değildir. Sınır çizgileri oyun amaçlıdır; hukuki/kadastro doğruluğu iddiası taşımaz. Tartışmalı alanların temsili için kaynakların kendi tanımları korunmalı, tek bir siyasi yorum gerçekmiş gibi sabitlenmemelidir.
+**Türkiye doğrulaması:** geoBoundaries API'nin `TUR/ADM1` kaydı 81 il içerdiğini doğruluyor; sınır kaynağı OpenStreetMap, temsil yılı 2021 ve kayıttaki lisans Creative Commons Attribution-ShareAlike 2.0 olarak belirtilmiş. Dolayısıyla Türkiye verisini indirirken OSM atfı ve CC BY-SA 2.0 koşulları korunmalı.\n\n**Önemli:** Sınır verileri farklı kurumların farklı yıllardaki kaynaklarından derlenir. Ülkelerin ADM1/ADM2 sayısı ve güncelliği eşit değildir. Sınır çizgileri oyun amaçlıdır; hukuki/kadastro doğruluğu iddiası taşımaz. Tartışmalı alanların temsili için kaynakların kendi tanımları korunmalı, tek bir siyasi yorum gerçekmiş gibi sabitlenmemelidir.
 
 ## Alternatif: Terrae — OSM tabanlı, hiyerarşisi tutarlı dünya bölümleri
 
