@@ -169,24 +169,66 @@ export class Renderer {
   }
   drawStar(ctx,cx,cy,r,color){ctx.save();ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2===0?r:r*.43,x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.restore();}
   drawAccessory(ctx,cx,cy,r,country){
-    ctx.save();ctx.lineCap='round';
-    if(country.id==='russia'){ctx.fillStyle='#65748b';ctx.beginPath();ctx.ellipse(cx,cy-r*.72,r*.76,r*.22,0,Math.PI,Math.PI*2);ctx.fill();ctx.fillRect(cx-r*.76,cy-r*.72,r*1.52,r*.17);ctx.strokeStyle='rgba(255,255,255,.38)';ctx.lineWidth=1.2;ctx.stroke();}
-    else if(country.id==='france'){ctx.fillStyle='#8b3445';ctx.beginPath();ctx.ellipse(cx,cy-r*.77,r*.68,r*.18,-.08,Math.PI,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(cx-r*.68,cy-r*.77);ctx.quadraticCurveTo(cx,cy-r*.48,cx+r*.68,cy-r*.77);ctx.fill();}
-    else if(country.id==='uk'){ctx.strokeStyle='#d5dbe5';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-r*.42,cy-r*.68);ctx.lineTo(cx+r*.42,cy-r*.68);ctx.stroke();ctx.fillStyle='#263b68';ctx.fillRect(cx-r*.48,cy-r*.82,r*.96,r*.15);}
-    else if(country.id==='japan'){ctx.strokeStyle='#bc002d';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx-r*.72,cy-r*.65);ctx.quadraticCurveTo(cx,cy-r*.94,cx+r*.72,cy-r*.65);ctx.stroke();}
-    else if(country.id==='usa'){ctx.fillStyle='#253d68';ctx.beginPath();ctx.moveTo(cx-r*.55,cy-r*.55);ctx.lineTo(cx-r*.25,cy-r*.9);ctx.lineTo(cx+r*.05,cy-r*.55);ctx.closePath();ctx.fill();}
-    else if(country.id==='china'){ctx.fillStyle='#ffde00';ctx.beginPath();ctx.arc(cx+r*.57,cy-r*.55,r*.12,0,Math.PI*2);ctx.fill();}
+    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+    const band=(color,y=r*.72)=>{ctx.strokeStyle=color;ctx.lineWidth=Math.max(2,r*.12);ctx.beginPath();ctx.arc(cx,cy-r*.08,r*.88,Math.PI*1.12,Math.PI*1.88);ctx.stroke();};
+    if(country.id==='russia'){
+      ctx.fillStyle='#65748b';ctx.beginPath();ctx.ellipse(cx,cy-r*.72,r*.76,r*.22,0,Math.PI,Math.PI*2);ctx.fill();ctx.fillRect(cx-r*.76,cy-r*.72,r*1.52,r*.17);ctx.strokeStyle='rgba(255,255,255,.38)';ctx.lineWidth=1.2;ctx.stroke();
+    } else if(country.id==='france'){
+      ctx.fillStyle='#8b3445';ctx.beginPath();ctx.ellipse(cx,cy-r*.77,r*.68,r*.18,-.08,Math.PI,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(cx-r*.68,cy-r*.77);ctx.quadraticCurveTo(cx,cy-r*.48,cx+r*.68,cy-r*.77);ctx.fill();
+    } else if(country.id==='uk'){
+      ctx.fillStyle='#263b68';ctx.fillRect(cx-r*.48,cy-r*.82,r*.96,r*.15);ctx.fillRect(cx-r*.36,cy-r*1.02,r*.72,r*.22);ctx.strokeStyle='#d5dbe5';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(cx-r*.42,cy-r*.68);ctx.lineTo(cx+r*.42,cy-r*.68);ctx.stroke();
+    } else if(country.id==='japan'){
+      band('#bc002d');ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx+r*.38,cy-r*.78,r*.075,0,Math.PI*2);ctx.fill();
+    } else if(country.id==='usa'){
+      ctx.fillStyle='#253d68';ctx.beginPath();ctx.moveTo(cx-r*.55,cy-r*.55);ctx.lineTo(cx-r*.25,cy-r*.94);ctx.lineTo(cx+r*.08,cy-r*.55);ctx.closePath();ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.4;ctx.stroke();
+    } else if(country.id==='china'){
+      ctx.fillStyle='#ffde00';ctx.beginPath();ctx.arc(cx+r*.57,cy-r*.55,r*.12,0,Math.PI*2);ctx.fill();
+    } else if(country.id==='canada'){
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.moveTo(cx,cy-r*.98);ctx.lineTo(cx+r*.13,cy-r*.76);ctx.lineTo(cx+r*.28,cy-r*.83);ctx.lineTo(cx+r*.2,cy-r*.59);ctx.lineTo(cx-r*.2,cy-r*.59);ctx.lineTo(cx-r*.28,cy-r*.83);ctx.lineTo(cx-r*.13,cy-r*.76);ctx.closePath();ctx.fill();
+    } else if(country.id==='mexico'){
+      ctx.fillStyle='#d8c49a';ctx.beginPath();ctx.ellipse(cx,cy-r*.73,r*.9,r*.16,0,Math.PI,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(cx-r*.58,cy-r*.73);ctx.quadraticCurveTo(cx,cy-r*1.2,cx+r*.58,cy-r*.73);ctx.closePath();ctx.fill();ctx.strokeStyle='#72583c';ctx.lineWidth=1.5;ctx.stroke();
+    } else if(country.id==='brazil'){
+      band('#ffdf00');ctx.fillStyle='#009c3b';ctx.beginPath();ctx.arc(cx,cy-r*.79,r*.12,0,Math.PI*2);ctx.fill();
+    } else if(country.id==='germany'){
+      ctx.fillStyle='#1d2530';ctx.beginPath();ctx.moveTo(cx-r*.6,cy-r*.76);ctx.lineTo(cx-r*.35,cy-r*.99);ctx.lineTo(cx+r*.35,cy-r*.99);ctx.lineTo(cx+r*.6,cy-r*.76);ctx.closePath();ctx.fill();
+    } else if(country.id==='poland'){
+      ctx.fillStyle='#f2c94c';ctx.beginPath();ctx.moveTo(cx-r*.48,cy-r*.73);ctx.lineTo(cx-r*.3,cy-r*.98);ctx.lineTo(cx-r*.08,cy-r*.8);ctx.lineTo(cx+r*.1,cy-r*1.02);ctx.lineTo(cx+r*.3,cy-r*.8);ctx.lineTo(cx+r*.48,cy-r*.73);ctx.closePath();ctx.fill();
+    } else if(country.id==='turkey'){
+      band('#f3d9a6');ctx.fillStyle='#e30a17';ctx.beginPath();ctx.arc(cx,cy-r*.82,r*.12,0,Math.PI*2);ctx.fill();
+    } else if(country.id==='egypt'){
+      ctx.fillStyle='#d9bd73';ctx.fillRect(cx-r*.68,cy-r*.86,r*1.36,r*.17);ctx.fillStyle='#27334a';ctx.fillRect(cx-r*.68,cy-r*.69,r*1.36,r*.07);
+    } else if(country.id==='israel'){
+      band('#fff');ctx.strokeStyle='#0038b8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-r*.2,cy-r*.82);ctx.lineTo(cx+r*.2,cy-r*.82);ctx.moveTo(cx-r*.1,cy-r*.65);ctx.lineTo(cx+r*.1,cy-r*.99);ctx.stroke();
+    } else if(country.id==='saudi'){
+      ctx.strokeStyle='#d8c7a0';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(cx,cy-r*.77,r*.7,r*.12,0,Math.PI,Math.PI*2);ctx.stroke();
+    } else if(country.id==='iran'){
+      ctx.fillStyle='#d9c69b';ctx.beginPath();ctx.moveTo(cx-r*.42,cy-r*.66);ctx.lineTo(cx,cy-r*1.02);ctx.lineTo(cx+r*.42,cy-r*.66);ctx.closePath();ctx.fill();
+    } else if(country.id==='india'){
+      ctx.fillStyle='#d6b45b';ctx.beginPath();ctx.arc(cx,cy-r*.8,r*.16,0,Math.PI*2);ctx.fill();ctx.fillRect(cx-r*.08,cy-r*.99,r*.16,r*.2);
+    } else if(country.id==='south_korea'){
+      band('#fff');ctx.fillStyle='#cd2e3a';ctx.beginPath();ctx.arc(cx,cy-r*.8,r*.11,Math.PI,0);ctx.fill();ctx.fillStyle='#0047a0';ctx.beginPath();ctx.arc(cx,cy-r*.8,r*.11,0,Math.PI);ctx.fill();
+    } else if(country.id==='indonesia'){
+      ctx.fillStyle='#f4d4b0';ctx.beginPath();ctx.ellipse(cx,cy-r*.78,r*.68,r*.12,0,Math.PI,Math.PI*2);ctx.fill();
+    } else if(country.id==='australia'){
+      ctx.strokeStyle='#e6c99a';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx-r*.48,cy-r*.84);ctx.quadraticCurveTo(cx,cy-r*.55,cx+r*.48,cy-r*.84);ctx.stroke();
+    }
     ctx.restore();
   }
 
   drawEyes(ctx,cx,cy,r,country){
     const ey=cy-r*.12,sp=r*.31,er=r*.17;
     ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx-sp,ey,er,0,Math.PI*2);ctx.arc(cx+sp,ey,er,0,Math.PI*2);ctx.fill();
-    let oy=0,scale=1;if(country.expression==='angry'){oy=2;scale=.82;}if(country.expression==='worried'){oy=1;scale=1.08;}
+    let oy=0,scale=1;
+    if(country.expression==='angry'||country.characterId==='AGGRESSIVE'){oy=1;scale=.9;}
+    if(country.expression==='worried'||country.characterId==='IDEOLOGUE'){oy=1;scale=1.06;}
+    if(country.characterId==='DIPLOMATIC'){scale=.94;}
     ctx.fillStyle='#15202b';ctx.beginPath();ctx.arc(cx-sp,ey+oy,er*.46*scale,0,Math.PI*2);ctx.arc(cx+sp,ey+oy,er*.46*scale,0,Math.PI*2);ctx.fill();
-    if(country.expression==='angry'||country.atWarWith.size>0){
-      ctx.strokeStyle='#20232b';ctx.lineWidth=2.4;ctx.lineCap='round';
-      ctx.beginPath();ctx.moveTo(cx-sp-er,ey-er*.9);ctx.lineTo(cx-sp+er*.7,ey-er*.55);ctx.moveTo(cx+sp+er,ey-er*.9);ctx.lineTo(cx+sp-er*.7,ey-er*.55);ctx.stroke();
+    if(country.expression==='angry'||country.atWarWith.size>0||country.characterId==='AGGRESSIVE'){
+      ctx.strokeStyle='#20232b';ctx.lineWidth=2.4;ctx.lineCap='round';ctx.beginPath();
+      ctx.moveTo(cx-sp-er,ey-er*.9);ctx.lineTo(cx-sp+er*.7,ey-er*.55);
+      ctx.moveTo(cx+sp+er,ey-er*.9);ctx.lineTo(cx+sp-er*.7,ey-er*.55);ctx.stroke();
+    } else if(country.characterId==='DIPLOMATIC'){
+      ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(cx,ey+er*.45,r*.2,.15,Math.PI-.15);ctx.stroke();
     }
   }
 
