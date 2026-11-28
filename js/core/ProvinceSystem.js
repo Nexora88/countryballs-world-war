@@ -87,7 +87,7 @@ export class ProvinceSystem {
     const source = this.getRegion(sourceRegionId);
     if (!attacker || !city || !source || source.ownerId !== attackerId) return { ok:false, reason:'invalid-source' };
     const targetRegion = this.getRegion(city.regionId);
-    if (!targetRegion || city.ownerId === attackerId || !this.areAdjacent(sourceRegionId, targetRegion.id)) {
+    if (!targetRegion || city.ownerId === attackerId || (sourceRegionId !== targetRegion.id && !this.areAdjacent(sourceRegionId, targetRegion.id))) {
       return { ok:false, reason:'city-not-reachable' };
     }
     if (source.troops < 5) return { ok:false, reason:'insufficient-troops' };
