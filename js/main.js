@@ -388,7 +388,7 @@ function openProvincePanel(hit) {
   }
 
   if (kind === 'city' && data.ownerId !== player.id) {
-    const source = world.provinces.getControlledRegions(player.id).find(r => world.provinces.areAdjacent(r.id, data.regionId));
+    const source = world.provinces.getControlledRegions(player.id).find(r => r.id === data.regionId || world.provinces.areAdjacent(r.id, data.regionId));
     if (source) {
       addBtn(mili, source.name + ' üzerinden şehre saldır', () => {
         const result = world.provinces.attackCity(player.id, data.id, source.id);
