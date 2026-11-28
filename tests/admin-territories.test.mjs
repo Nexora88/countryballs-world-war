@@ -61,3 +61,14 @@ test('rejects unsupported countries and malformed GeoJSON', async () => {
   await assert.rejects(system.loadLevel('unknown','ADM1'));
   await assert.rejects(system.loadLevel('turkey','ADM2'));
 });
+
+test('accepts any ISO3 and resolves playable ISO aliases to canonical game ids', async () => {
+  const world=makeWorld();
+  const geojson={type:'FeatureCollection',features:[feature('one',[[0,0],[1,0],[1,1],[0,1],[0,0]])]};
+  const system=new AdminTerritorySystem(world,{fetcher:async()=>({ok:true,json:async()=>geojson})});
+  const turkey=await system.loadLevel('TUR','ADM1');
+  const kenya=await system.loadLevel('KEN','ADM1');
+  assert.equal(turkey.countryId,'turkey');
+  assert.equal(kenya.countryId,'KEN');
+  assert.equal(system.getFeatureState(kenya.features[0]).ownerId,'KEN');
+});
