@@ -136,9 +136,6 @@ export class Country {
       this.stability = Math.min(100, this.stability + 0.002 * dt);
     }
 
-    // Economy generates gold
-    this.gold += (this.economy / 100) * 0.8 * dt;
-
     // Pulse animation
     this.pulse += dt * 0.003;
   }
