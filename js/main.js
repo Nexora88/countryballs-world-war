@@ -132,9 +132,13 @@ function setupGameUI() {
   canvas.onclick = (e) => {
     audio.resume();
     const rect = canvas.getBoundingClientRect();
-    const hit = renderer.hitTest(e.clientX - rect.left, e.clientY - rect.top, world);
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const provinceHit = renderer.hitTestProvince(x, y, world);
+    const hit = provinceHit ? null : renderer.hitTest(x, y, world);
     for (const c of world.getAllCountries()) c.selected = false;
-    if (hit) {
+    if (provinceHit) {
+      openProvincePanel(provinceHit);
+    } else if (hit) {
       hit.selected = true;
       openSidePanel(hit);
     } else {
@@ -323,6 +327,88 @@ function openSidePanel(country) {
       notify(`${country.name} ile savaş başladı.`);
       openSidePanel(country);
     }, true);
+  }
+}
+
+
+function openProvincePanel(hit) {
+  const { kind, data } = hit;
+  const panel = document.getElementById('side-panel');
+  const player = world.getPlayer();
+  const diplo = document.getElementById('diplomacy-actions');
+  const mili = document.getElementById('military-actions');
+  const ball = document.getElementById('panel-ball');
+  panel.classList.remove('hidden');
+  diplo.innerHTML = '';
+  mili.innerHTML = '';
+  ball.style.background = 'linear-gradient(135deg,#e30a17,#ffffff)';
+  document.getElementById('panel-name').textContent = data.name;
+  document.getElementById('panel-character').textContent = kind === 'city'
+    ? (data.capital ? 'BAŞKENT • STRATEJİK ŞEHİR' : 'STRATEJİK ŞEHİR')
+    : 'TÜRKİYE • BÖLGE YÖNETİMİ';
+  document.getElementById('panel-character').style.color = data.capital ? '#e6b84b' : '#75c7ff';
+
+  const owner = world.getCountry(data.ownerId);
+  const region = kind === 'region' ? data : world.provinces.getRegion(data.regionId);
+  const troops = kind === 'region' ? data.troops : data.garrison;
+  document.getElementById('stat-military').style.width = Math.min(100, troops) + '%';
+  document.getElementById('stat-economy').style.width = Math.min(100, region.economy || 0) + '%';
+  document.getElementById('stat-stability').style.width = Math.min(100, region.stability || 0) + '%';
+  document.getElementById('stat-tech').style.width = Math.min(100, owner?.tech * 8 || 0) + '%';
+  const ownerInfo = document.createElement('div');
+  ownerInfo.style.cssText = 'font-size:.85rem;color:var(--text-secondary);margin-bottom:8px';
+  ownerInfo.textContent = 'Kontrol: ' + (owner?.name || 'Bağımsız');
+  diplo.appendChild(ownerInfo);
+
+  if (!player) return;
+  if (kind === 'region' && data.ownerId === player.id) {
+    addBtn(mili, 'Bu bölgede 5 asker üret (10 altın)', () => {
+      if (world.provinces.recruit(player.id, data.id, 5)) {
+        audio.positive(); notify(data.name + ': 5 asker üretildi.');
+      } else notify('Yeterli altın veya insan gücü yok.');
+      openProvincePanel(hit);
+    });
+  }
+
+  if (kind === 'region' && data.ownerId !== player.id) {
+    const source = world.provinces.getControlledRegions(player.id).find(r => world.provinces.areAdjacent(r.id, data.id));
+    if (source) {
+      addBtn(mili, source.name + ' üzerinden bölgeye saldır', () => {
+        const result = world.provinces.attackRegion(player.id, source.id, data.id);
+        notify(result.captured ? data.name + ' ele geçirildi!' : result.ok ? 'Saldırı püskürtüldü.' : 'Saldırı yapılamadı.');
+        openProvincePanel(hit);
+      }, true);
+    } else if (world.provinces.canEnterFromCountry(player.id, data.id)) {
+      addBtn(mili, 'Sınırdan bölgeye saldır', () => {
+        const result = world.provinces.attackFromCountry(player.id, data.id);
+        notify(result.captured ? data.name + ' ele geçirildi!' : result.ok ? 'Saldırı püskürtüldü.' : 'Saldırı yapılamadı.');
+        openProvincePanel(hit);
+      }, true);
+    }
+  }
+
+  if (kind === 'city' && data.ownerId !== player.id) {
+    const source = world.provinces.getControlledRegions(player.id).find(r => r.id === data.regionId || world.provinces.areAdjacent(r.id, data.regionId));
+    if (source) {
+      addBtn(mili, source.name + ' üzerinden şehre saldır', () => {
+        const result = world.provinces.attackCity(player.id, data.id, source.id);
+        notify(result.captured ? (result.capital ? 'BAŞKENT ' : 'ŞEHİR ') + data.name + ' ele geçirildi!' : result.ok ? 'Şehir savunması direndi.' : 'Şehre ulaşılamıyor.');
+        openProvincePanel(hit);
+      }, true);
+    } else {
+      const info = document.createElement('div');
+      info.style.cssText = 'font-size:.8rem;color:var(--text-secondary)';
+      info.textContent = 'Bu şehre saldırmak için komşu bir bölgeyi kontrol etmelisin.';
+      mili.appendChild(info);
+    }
+  }
+
+  if (kind === 'region') {
+    const cityNames = data.cities.map(id => world.provinces.getCity(id)?.name).filter(Boolean);
+    const info = document.createElement('div');
+    info.style.cssText = 'font-size:.8rem;color:var(--text-secondary);margin-top:8px';
+    info.textContent = 'Şehir hedefleri: ' + (cityNames.join(', ') || 'Yok');
+    mili.appendChild(info);
   }
 }
 

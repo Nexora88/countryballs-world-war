@@ -260,6 +260,51 @@ export class Renderer {
     ctx.restore();
   }
 
+
+  drawProvinceOverlay(world) {
+    if (!world.provinces || !['turkey','iran'].includes(world.playerId)) return;
+    const ctx = this.ctx;
+    for (const region of world.provinces.getRegions()) {
+      const p = this.worldToScreen(region.x, region.y);
+      const owner = world.getCountry(region.ownerId);
+      const color = owner?.color || '#e30a17';
+      ctx.save();
+      ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+      ctx.fillStyle = color; ctx.globalAlpha = .92; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = '#f3f8ff'; ctx.stroke();
+      ctx.globalAlpha = 1; ctx.font = '700 8px Inter,system-ui';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillStyle = '#f2f7fb';
+      ctx.shadowColor = '#071426'; ctx.shadowBlur = 4;
+      ctx.fillText(region.name, p.x, p.y + 10);
+      ctx.restore();
+    }
+    for (const city of world.provinces.getCities()) {
+      const p = this.worldToScreen(city.x, city.y);
+      const owner = world.getCountry(city.ownerId);
+      ctx.save();
+      ctx.fillStyle = owner?.color || '#e30a17';
+      ctx.strokeStyle = city.capital ? '#ffd166' : '#ffffff';
+      ctx.lineWidth = city.capital ? 2.5 : 1.5;
+      ctx.fillRect(p.x - 3.5, p.y - 3.5, 7, 7);
+      ctx.strokeRect(p.x - 3.5, p.y - 3.5, 7, 7);
+      ctx.restore();
+    }
+  }
+
+  hitTestProvince(sx, sy, world) {
+    if (!world.provinces || !['turkey','iran'].includes(world.playerId)) return null;
+    for (const city of world.provinces.getCities()) {
+      const p = this.worldToScreen(city.x, city.y);
+      if (Math.hypot(sx - p.x, sy - p.y) <= 11) return { kind:'city', data:city };
+    }
+    for (const region of world.provinces.getRegions()) {
+      const p = this.worldToScreen(region.x, region.y);
+      if (Math.hypot(sx - p.x, sy - p.y) <= 12) return { kind:'region', data:region };
+    }
+    return null;
+  }
+
   render(world){
     this.time+=16;this.clear(world);
     const countries=world.getAllCountries();
@@ -269,6 +314,7 @@ export class Renderer {
     }
     if(world.combat)for(const army of world.combat.getArmies())if(!army.retreating)this.drawArmy(army,world);
     for(const country of countries)this.drawCountry(country);
+    this.drawProvinceOverlay(world);
   }
 
   lighten(hex,p){const n=parseInt(hex.replace('#',''),16),r=Math.min(255,(n>>16)+p),g=Math.min(255,((n>>8)&255)+p),b=Math.min(255,(n&255)+p);return 'rgb('+r+','+g+','+b+')';}
