@@ -46,7 +46,8 @@ async function mapLimit(items, limit, worker) {
 
 await mkdir(OUT, { recursive: true });
 const manifestPath = path.join(OUT, 'manifest.json');
-let manifest = { schemaVersion: 1, provider: 'geoBoundaries gbOpen', api: API, generatedAt: null, datasets: {} };\ntry { manifest = JSON.parse(await readFile(manifestPath, 'utf8')); } catch {}
+let manifest = { schemaVersion: 1, provider: 'geoBoundaries gbOpen', api: API, generatedAt: null, datasets: {} };
+try { manifest = JSON.parse(await readFile(manifestPath, 'utf8')); } catch {}
 
 for (const level of levels) {
   console.log(`[catalog] ${level}`);
