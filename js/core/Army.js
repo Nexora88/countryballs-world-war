@@ -54,7 +54,7 @@ export class CombatSystem {
     if (!from || !to) return null;
     if (fromId === toId) return null;
     if (!this.world.areAdjacent(fromId, toId)) return null;
-    if (from.controllerId !== fromId && from.controllerId !== this.world.playerId) return null;
+    if (!this.world.getCountry(from.controllerId)) return null;
     if (to.controllerId === from.controllerId) return null;
 
     // Can't send more than available
