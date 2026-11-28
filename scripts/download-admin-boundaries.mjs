@@ -23,6 +23,8 @@ const detail = args.detail === 'full' ? 'full' : 'simplified';
 const concurrency = Math.max(1, Math.min(12, Number(args.concurrency || 5)));
 const dryRun = args['dry-run'] === 'true';
 
+let failures = 0;
+
 for (const level of levels) {
   if (!/^ADM[1-5]$/.test(level)) throw new Error('Desteklenen seviyeler: ADM1–ADM5');
 }
@@ -106,6 +108,7 @@ for (const level of levels) {
       manifest.datasets[level][iso] = record;
       console.log(`[ok] ${iso} ${level} — ${record.featureCount ?? '?'} birim`);
     } catch (error) {
+      failures += 1;
       console.error(`[error] ${iso} ${level}: ${error.message}`);
     }
   });
@@ -115,3 +118,7 @@ manifest.generatedAt = new Date().toISOString();
 manifest.attribution = 'Contains geoBoundaries data; see per-dataset source and license metadata. Attribution required.';
 await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
 console.log(`Manifest: ${path.relative(ROOT, manifestPath)}`);
+if (failures > 0) {
+  console.error(`${failures} dataset(s) failed. Check the errors above before using this manifest.`);
+  process.exitCode = 1;
+}
