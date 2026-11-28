@@ -17,7 +17,7 @@ Kişilik odaklı, web tabanlı, kurulumsuz Countryballs strateji oyunu.
 - **Ses** — Web Audio (savaş, ittifak, nükleer, bildirim)
 - **Zafer koşulları** — Askeri / Ekonomik / Diplomatik / Teknolojik / Nükleer
 
-## Çalıştırma
+## Dünya idari sınır verileri\n\nDünya genelindeki ADM1/ADM2 il, eyalet ve bölge sınırları için açık veri kaynakları, lisans notları ve indirme aracı: [WORLD_ADMIN_BOUNDARIES.md](docs/WORLD_ADMIN_BOUNDARIES.md). İndirme aracı Node.js 18+ ile çalışır: `node scripts/download-admin-boundaries.mjs --levels=ADM1,ADM2`.\n\n## Çalıştırma
 
 ```bash
 npx serve .
