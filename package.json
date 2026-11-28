@@ -1,0 +1,9 @@
+{
+  "name": "countryballs-sovereign",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check scripts/download-admin-boundaries.mjs && node --check js/core/AdminTerritorySystem.js && node --check js/core/World.js && node --check js/render/Renderer.js && node --check js/main.js"
+  }
+}

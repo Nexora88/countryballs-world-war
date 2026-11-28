@@ -12,6 +12,7 @@ export class Renderer {
     this.width = 0;
     this.height = 0;
     this.time = 0;
+    this.camera = { x: 0.5, y: 0.5, zoom: 1 };
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
@@ -33,11 +34,21 @@ export class Renderer {
     const padR = this.width * 0.035;
     const padT = 76;
     const padB = 38;
+    const z = this.camera.zoom;
+    const cx = (nx - this.camera.x) * z + 0.5;
+    const cy = (ny - this.camera.y) * z + 0.5;
     return {
-      x: padL + nx * (this.width - padL - padR),
-      y: padT + ny * Math.max(100, this.height - padT - padB)
+      x: padL + cx * (this.width - padL - padR),
+      y: padT + cy * Math.max(100, this.height - padT - padB)
     };
   }
+
+  focusOnCountry(country, zoom = 2.2) {
+    this.camera = { x: country.x, y: country.y, zoom: Math.max(1, Math.min(5, zoom)) };
+  }
+
+  zoomBy(delta) { this.camera.zoom = Math.max(1, Math.min(5, this.camera.zoom + delta)); }
+  resetCamera() { this.camera = { x: 0.5, y: 0.5, zoom: 1 }; }
 
   clear(world = null) {
     const ctx = this.ctx;
@@ -305,6 +316,70 @@ export class Renderer {
     return null;
   }
 
+  drawAdminBoundaries(world) {
+    if (!world.adminTerritories || this.camera.zoom < 1.15) return;
+    const ctx = this.ctx;
+    for (const feature of world.adminTerritories.getVisibleFeatures()) {
+      const state = world.adminTerritories.getFeatureState(feature);
+      const owner = state && world.getCountry(state.ownerId);
+      const geometry = feature.geometry;
+      if (!geometry || !state) continue;
+      ctx.beginPath(); this.traceGeoGeometry(geometry);
+      ctx.fillStyle = owner?.color || '#8aa7bb'; ctx.globalAlpha = 0.48; ctx.fill();
+      ctx.globalAlpha = 1; ctx.strokeStyle = 'rgba(235,246,255,.86)'; ctx.lineWidth = Math.max(.65, 1.15 / this.camera.zoom); ctx.stroke();
+    }
+  }
+
+  pointInRing(x, y, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const a = ring[i], b = ring[j];
+      const pa = this.worldToScreen((a[0] + 180) / 360, (90 - a[1]) / 180);
+      const pb = this.worldToScreen((b[0] + 180) / 360, (90 - b[1]) / 180);
+      if (((pa.y > y) !== (pb.y > y)) && x < (pb.x - pa.x) * (y - pa.y) / ((pb.y - pa.y) || 1e-9) + pa.x) inside = !inside;
+    }
+    return inside;
+  }
+
+  hitTestWorldCountry(sx, sy) {
+    for (let i = WORLD_COUNTRIES.features.length - 1; i >= 0; i--) {
+      const feature = WORLD_COUNTRIES.features[i];
+      const geometry = feature.geometry;
+      if (!geometry) continue;
+      const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.type === 'MultiPolygon' ? geometry.coordinates : [];
+      for (const polygon of polygons) {
+        if (!polygon[0] || !this.pointInRing(sx, sy, polygon[0])) continue;
+        let inHole = false;
+        for (let h = 1; h < polygon.length; h++) if (this.pointInRing(sx, sy, polygon[h])) inHole = true;
+        if (inHole) continue;
+        const ring = polygon[0];
+        const lon = ring.reduce((sum, p) => sum + p[0], 0) / ring.length;
+        const lat = ring.reduce((sum, p) => sum + p[1], 0) / ring.length;
+        return { iso: feature.properties.iso, id: feature.properties.iso, name: feature.properties.name,
+          x: (lon + 180) / 360, y: (90 - lat) / 180 };
+      }
+    }
+    return null;
+  }
+
+  hitTestAdminTerritory(sx, sy, world) {
+    if (!world.adminTerritories || this.camera.zoom < 1.15) return null;
+    const features = world.adminTerritories.getVisibleFeatures();
+    for (let i = features.length - 1; i >= 0; i--) {
+      const feature = features[i], g = feature.geometry;
+      if (!g) continue;
+      const polygons = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+      for (const polygon of polygons) {
+        if (polygon[0] && this.pointInRing(sx, sy, polygon[0])) {
+          let inHole = false;
+          for (let h = 1; h < polygon.length; h++) if (this.pointInRing(sx, sy, polygon[h])) inHole = true;
+          if (!inHole) return feature;
+        }
+      }
+    }
+    return null;
+  }
+
   render(world){
     this.time+=16;this.clear(world);
     const countries=world.getAllCountries();
@@ -314,6 +389,7 @@ export class Renderer {
     }
     if(world.combat)for(const army of world.combat.getArmies())if(!army.retreating)this.drawArmy(army,world);
     for(const country of countries)this.drawCountry(country);
+    this.drawAdminBoundaries(world);
     this.drawProvinceOverlay(world);
   }
 
