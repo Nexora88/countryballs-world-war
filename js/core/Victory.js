@@ -16,17 +16,26 @@ export class VictorySystem {
     const player = this.world.getPlayer();
     if (!player) return null;
 
-    // 1. Military Domination — control most power or many wars won
+    const territories = this.world.getControlledTerritories(player.id);
+    if (territories.length === 0) {
+      this.winner = null;
+      this.victoryType = 'defeat';
+      return 'defeat';
+    }
+
+    // Controlled regions contribute to the player's military and economy.
+    const controlledPower = territories.reduce((s, c) => s + c.power, 0);
     const totalPower = this.world.getAllCountries().reduce((s, c) => s + c.power, 0);
-    if (player.power > totalPower * 0.38) {
+    if (controlledPower > totalPower * 0.38) {
       this.winner = player;
       this.victoryType = 'military';
       return player;
     }
 
     // 2. Economic Hegemony
+    const controlledEconomy = territories.reduce((s, c) => s + c.economy, 0);
     const totalEcon = this.world.getAllCountries().reduce((s, c) => s + c.economy, 0);
-    if (player.economy > totalEcon * 0.32 && player.gold > 800) {
+    if (controlledEconomy > totalEcon * 0.32 && player.gold > 800) {
       this.winner = player;
       this.victoryType = 'economic';
       return player;
