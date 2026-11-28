@@ -6,6 +6,7 @@ import { AIController } from './AI.js';
 import { EconomySystem } from './Economy.js';
 import { EventSystem } from './Events.js';
 import { VictorySystem } from './Victory.js';
+import { ProvinceSystem } from './ProvinceSystem.js';
 
 export class World {
   constructor() {
@@ -33,6 +34,7 @@ export class World {
       this.countries.set(country.id, country);
     }
     this.initializeRelations();
+    this.provinces = new ProvinceSystem(this);
 
     this.combat = new CombatSystem(this);
     this.economy = new EconomySystem(this);
@@ -173,6 +175,7 @@ export class World {
     }
 
     this.economy.dailyTick();
+    this.provinces.tick();
     this.events.update();
 
     for (const c of this.getAllCountries()) {
