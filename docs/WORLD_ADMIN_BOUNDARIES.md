@@ -64,6 +64,17 @@ node scripts/download-admin-boundaries.mjs --iso=TUR,USA,DEU,FRA --levels=ADM1,A
 
 İndirilenler `data/admin-boundaries/{ADM_LEVEL}/{ISO3}.geojson` altında, kaynak/lisans/yıl bilgileri ise `data/admin-boundaries/manifest.json` içinde tutulur. Büyük veri indirmeleri bilinçli olarak Git'e otomatik eklenmez; dosya boyutları ve kaynak lisansları kontrol edildikten sonra sürümlenmelidir.
 
+## Oyuna entegrasyon durumu
+
+- `js/core/AdminTerritorySystem.js` GeoJSON katmanlarını ülke/ADM seviyesi bazında tembel yükler; `ISO3:ADM_LEVEL:shapeID` anahtarları üretir.
+- ADM1 katmanı ülkeye tıklanınca yüklenir. Fare tekerleği yakınlaştırır; çift tıklama dünya görünümüne döner.
+- Poligon sahipliği, garnizon, ekonomi ve istikrar `AdminTerritorySystem` içindeki oyun state'inde tutulur; indirilen kaynak GeoJSON değiştirilmez.
+- Ortak sınır koordinatları üzerinden komşuluk grafiği kurulur; komşu idari birimlere saldırı ve garnizon takviyesi desteklenir.
+- ADM2, bir ADM1 biriminden paneldeki eylemle yüklenir. Kaynak veri `shapeParent` alanı sağlıyorsa ilgili üst birime göre filtrelenir; sağlamıyorsa ülkenin ADM2 katmanı gösterilir.
+- Oyun başlangıcında oyuncunun ADM1 katmanı otomatik istenir. İlgili GeoJSON henüz indirilmemişse oyun devam eder ve bildirimde indirme komutu gösterilir.
+
+**Bilinen sınırlar:** Bu PR dünya genelindeki dosyaları depoya eklemez; her ülkenin verisi indiriciyle hazırlanmalıdır. 20 oynanabilir ülke için ISO eşlemesi tanımlıdır. ADM2 parent alanları veri sağlayıcıya göre farklı olabildiğinden, her ülke için hiyerarşi doğrulaması gerekir. Kaynak dosyaları lisanslarıyla birlikte dağıtılmalıdır.
+
 ## Oyun mimarisi için karar
 
 1. Dünya görünümü: mevcut hafif ADM0 geometrisi.
