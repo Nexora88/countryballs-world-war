@@ -140,6 +140,7 @@ function setupGameUI() {
     const adminHit = renderer.hitTestAdminTerritory(x, y, world);
     const provinceHit = adminHit ? null : renderer.hitTestProvince(x, y, world);
     const hit = (adminHit || provinceHit) ? null : renderer.hitTest(x, y, world);
+    const mapCountryHit = (adminHit || provinceHit || hit) ? null : renderer.hitTestWorldCountry(x, y);
     for (const c of world.getAllCountries()) c.selected = false;
     if (adminHit) {
       openAdminTerritoryPanel(adminHit);
@@ -152,6 +153,13 @@ function setupGameUI() {
       world.adminTerritories.loadLevel(hit.id, 'ADM1').then(layer => {
         world.adminTerritories.buildAdjacency(world.adminTerritories.getLoadedFeatures('ADM1'));
         notify(`${hit.name}: ${layer.features.length} idari bölge yüklendi.`);
+      }).catch(error => notify(error.message));
+    } else if (mapCountryHit) {
+      renderer.focusOnCountry(mapCountryHit, 2.2);
+      openWorldCountryPanel(mapCountryHit);
+      world.adminTerritories.loadLevel(mapCountryHit.iso, 'ADM1').then(layer => {
+        world.adminTerritories.buildAdjacency(world.adminTerritories.getLoadedFeatures('ADM1'));
+        notify(`${mapCountryHit.name}: ${layer.features.length} idari bölge yüklendi.`);
       }).catch(error => notify(error.message));
     } else {
       closeSidePanel();
@@ -348,6 +356,23 @@ function openSidePanel(country) {
   }
 }
 
+
+function openWorldCountryPanel(country) {
+  const panel = document.getElementById('side-panel');
+  panel.classList.remove('hidden');
+  document.getElementById('panel-name').textContent = country.name;
+  document.getElementById('panel-character').textContent = `ÜLKE • ${country.iso}`;
+  document.getElementById('panel-character').style.color = '#75c7ff';
+  document.getElementById('panel-ball').style.background = 'linear-gradient(135deg,#34576b,#8aa7bb)';
+  for (const id of ['stat-military','stat-economy','stat-stability','stat-tech']) document.getElementById(id).style.width = '0%';
+  const diplo = document.getElementById('diplomacy-actions');
+  const mili = document.getElementById('military-actions');
+  diplo.innerHTML = ''; mili.innerHTML = '';
+  const info = document.createElement('div');
+  info.textContent = 'Bu ülke oynanabilir lider listesinde olmayabilir; idari bölgeleri yine de harita üzerinde fethedilebilir.';
+  diplo.appendChild(info);
+  addBtn(mili, 'Dünya görünümüne dön (çift tık)', () => renderer.resetCamera());
+}
 
 function openAdminTerritoryPanel(feature) {
   const system = world.adminTerritories;
