@@ -111,6 +111,10 @@ export class World {
       previousController.stability = Math.max(10, previousController.stability - 12);
       previousController.modifyRelation(attackerId, -25);
     }
+    attacker.atWarWith.delete(territoryId);
+    territory.atWarWith.delete(attackerId);
+    attacker.allies.delete(territoryId);
+    territory.allies.delete(attackerId);
     territory.controllerId = attackerId;
     territory.territoryLevel = Math.max(1, territory.territoryLevel || 1);
     territory.stability = Math.max(25, territory.stability - 18);
