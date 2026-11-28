@@ -7,6 +7,7 @@ const COUNTRY_ISO = {
   poland:'POL',russia:'RUS',turkey:'TUR',egypt:'EGY',israel:'ISR',saudi:'SAU',iran:'IRN',
   india:'IND',china:'CHN',south_korea:'KOR',japan:'JPN',indonesia:'IDN',australia:'AUS'
 };
+const ISO_TO_COUNTRY = Object.fromEntries(Object.entries(COUNTRY_ISO).map(([id, iso]) => [iso, id]));
 const LEVELS = new Set(['ADM1','ADM2']);
 const keyOf = (iso, level, feature) => {
   const p = feature.properties || {};
@@ -27,11 +28,13 @@ export class AdminTerritorySystem {
   }
 
   getIso(countryId) { return COUNTRY_ISO[countryId] || (/^[A-Z]{3}$/.test(countryId) ? countryId : null); }
+  getCountryId(iso) { return ISO_TO_COUNTRY[iso] || iso; }
   layerKey(iso, level, parentId = null) { return `${iso}:${level}${parentId ? ':' + parentId : ''}`; }
 
   async loadLevel(countryId, level = 'ADM1', parentId = null) {
     const iso = this.getIso(countryId);
     if (!iso || !LEVELS.has(level)) throw new Error('Geçersiz ülke veya idari seviye');
+    countryId = this.getCountryId(iso);
     const key = this.layerKey(iso, level, parentId);
     if (this.layers.has(key)) {
       this.activeLevel.set(countryId, level);
@@ -87,6 +90,7 @@ export class AdminTerritorySystem {
   getLayer(countryId, level = this.activeLevel.get(countryId) || 'ADM1') {
     const iso = this.getIso(countryId);
     if (!iso) return null;
+    countryId = this.getCountryId(iso);
     const activeKey = this.activeLayerKey.get(countryId);
     return (activeKey && this.layers.get(activeKey)?.level === level)
       ? this.layers.get(activeKey)
