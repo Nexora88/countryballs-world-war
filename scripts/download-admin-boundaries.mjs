@@ -7,7 +7,7 @@
  *   node scripts/download-admin-boundaries.mjs --levels=ADM1,ADM2
  *   node scripts/download-admin-boundaries.mjs --iso=TUR,USA --levels=ADM1,ADM2
  */
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const ROOT = process.cwd();
@@ -46,24 +46,24 @@ async function mapLimit(items, limit, worker) {
 
 await mkdir(OUT, { recursive: true });
 const manifestPath = path.join(OUT, 'manifest.json');
-let manifest = { schemaVersion: 1, provider: 'geoBoundaries gbOpen', api: API, generatedAt: null, datasets: {} };
-try { manifest = JSON.parse(await readFile(manifestPath, 'utf8')); } catch {}
+const manifest = { schemaVersion: 1, provider: 'geoBoundaries gbOpen', api: API, generatedAt: null, datasets: {} };
 
 for (const level of levels) {
   console.log(`[catalog] ${level}`);
   const catalog = await getJson(`${API}/ALL/${level}/`);
   const entries = Array.isArray(catalog) ? catalog : (catalog.boundaries || catalog.data || []);
-  const codes = [...new Set(entries.map((item) => item.boundaryISO).filter(Boolean))]
-    .filter((iso) => !isoFilter || isoFilter.has(iso));
-  console.log(`[catalog] ${codes.length} country codes found`);
+  const selected = [...new Map(entries.filter((item) => item.boundaryISO)
+    .filter((item) => !isoFilter || isoFilter.has(item.boundaryISO))
+    .map((item) => [item.boundaryISO, item])).values()];
+  console.log(`[catalog] ${selected.length} country codes found`);
   const levelDir = path.join(OUT, level);
   await mkdir(levelDir, { recursive: true });
   manifest.datasets[level] ||= {};
 
-  await mapLimit(codes, concurrency, async (iso) => {
-    const endpoint = `${API}/${iso}/${level}/`;
+  await mapLimit(selected, concurrency, async (catalogMetadata) => {
+    const iso = catalogMetadata.boundaryISO;
     try {
-      const metadata = await getJson(endpoint);
+      const metadata = catalogMetadata.gjDownloadURL ? catalogMetadata : await getJson(`${API}/${iso}/${level}/`);
       const url = detail === 'full'
         ? metadata.gjDownloadURL
         : (metadata.simplifiedGeometryGeoJSON || metadata.gjDownloadURL);
