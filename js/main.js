@@ -95,6 +95,10 @@ function startGame(playerId) {
   world = new World();
   world.setPlayer(playerId);
   victoryShown = false;
+  world.adminTerritories.loadLevel(playerId, 'ADM1').then(layer => {
+    world.adminTerritories.buildAdjacency(world.adminTerritories.getLoadedFeatures('ADM1'));
+    notify(`${world.getCountry(playerId).name}: ${layer.features.length} idari bölge hazır.`);
+  }).catch(error => notify(error.message));
 
   const canvas = document.getElementById('game-canvas');
   renderer = new Renderer(canvas);
@@ -146,7 +150,7 @@ function setupGameUI() {
       openSidePanel(hit);
       renderer.focusOnCountry(hit);
       world.adminTerritories.loadLevel(hit.id, 'ADM1').then(layer => {
-        world.adminTerritories.buildAdjacency(layer.features);
+        world.adminTerritories.buildAdjacency(world.adminTerritories.getLoadedFeatures('ADM1'));
         notify(`${hit.name}: ${layer.features.length} idari bölge yüklendi.`);
       }).catch(error => notify(error.message));
     } else {
@@ -374,14 +378,18 @@ function openAdminTerritoryPanel(feature) {
       else notify('Yeterli altın veya insan gücü yok.');
       openAdminTerritoryPanel(feature);
     });
+  } 
+  if (player) {
     addBtn(mili, 'ADM2 alt bölgelerini yükle', () => {
       system.loadLevel(feature.countryId, 'ADM2', feature.gameId).then(layer => {
-        system.buildAdjacency(layer.features);
-        renderer.focusOnCountry(world.getCountry(feature.countryId), 3.2);
+        system.buildAdjacency(system.getLoadedFeatures('ADM2'));
+        const country = world.getCountry(feature.countryId);
+        if (country) renderer.focusOnCountry(country, 3.2);
         notify(`${layer.features.length} alt bölge yüklendi.`);
       }).catch(error => notify(error.message));
     });
-  } else if (player) {
+  }
+  if (player && state.ownerId !== player.id) {
     const sourceLayer = system.getLayer(player.id);
     const source = sourceLayer?.features.find(f => system.getFeatureState(f)?.ownerId === player.id && (f.neighborIds || []).includes(feature.gameId));
     if (source) addBtn(mili, 'Komşu bölgeden saldır', () => {
