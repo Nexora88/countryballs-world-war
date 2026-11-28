@@ -86,6 +86,7 @@ export class World {
     const country = this.countries.get(countryId);
     if (country) {
       country.isPlayer = true;
+      country.controllerId = countryId;
       country.gold += 100;
     }
   }
@@ -171,7 +172,7 @@ export class World {
     this.events.update();
 
     for (const c of this.getAllCountries()) {
-      if (c.isPlayer) continue;
+      if (c.isPlayer || c.controllerId !== c.id) continue;
       if (Math.random() < 0.12) {
         const pref = this.economy.getPreferredUpgrade(c);
         if (pref) this.economy.buyUpgrade(c, pref);
