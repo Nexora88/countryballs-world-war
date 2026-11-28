@@ -46,12 +46,24 @@ export class AdminTerritorySystem {
       if (!collection || collection.type !== 'FeatureCollection' || !Array.isArray(collection.features)) {
         throw new Error(`${iso} ${level}: geçersiz GeoJSON FeatureCollection`);
       }
-      const features = collection.features.map((feature) => {
+      const parentLayer = level === 'ADM2' && parentId ? this.getLayer(countryId, 'ADM1') : null;
+      const parentFeature = parentLayer?.features.find(f => f.gameId === parentId);
+      const parentShapeId = parentFeature?.properties?.shapeID;
+      let sourceFeatures = collection.features;
+      if (parentShapeId) {
+        const scoped = sourceFeatures.filter(f => {
+          const parent = f.properties?.shapeParent;
+          return parent === parentShapeId || parent === parentId;
+        });
+        if (scoped.length) sourceFeatures = scoped;
+      }
+      const inheritedOwner = parentFeature ? this.getFeatureState(parentFeature)?.ownerId : null;
+      const features = sourceFeatures.map((feature) => {
         const id = keyOf(iso, level, feature);
         if (!this.states.has(id)) {
           const country = this.world.getCountry(countryId);
           this.states.set(id, {
-            id, countryId, level, ownerId: countryId,
+            id, countryId, level, ownerId: inheritedOwner || countryId,
             garrison: Math.max(4, Math.round((country?.military || 20) / 5)),
             economy: Math.max(10, Math.round((country?.economy || 40) / 2)),
             stability: country?.stability || 65,
@@ -75,6 +87,12 @@ export class AdminTerritorySystem {
   }
 
   getFeatureState(feature) { return this.states.get(feature.gameId) || null; }
+
+  getLoadedFeatures(level = null) {
+    return [...this.layers.values()]
+      .filter(layer => !level || layer.level === level)
+      .flatMap(layer => layer.features);
+  }
 
   getVisibleFeatures() {
     const result = [];
@@ -151,7 +169,9 @@ export class AdminTerritorySystem {
   }
 
   dailyTick() {
+    const visibleIds = new Set(this.getVisibleFeatures().map(feature => feature.gameId));
     for (const state of this.states.values()) {
+      if (!visibleIds.has(state.id)) continue;
       const controller = this.world.getCountry(state.ownerId);
       if (!controller) continue;
       controller.gold += state.economy * 0.008;
