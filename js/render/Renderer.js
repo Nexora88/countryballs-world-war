@@ -39,7 +39,7 @@ export class Renderer {
     };
   }
 
-  clear() {
+  clear(world = null) {
     const ctx = this.ctx;
     const g = ctx.createLinearGradient(0, 0, this.width, this.height);
     g.addColorStop(0, '#071426');
@@ -64,18 +64,18 @@ export class Renderer {
     for (let y = 88; y < this.height; y += 64) {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(this.width, y); ctx.stroke();
     }
-    this.drawWorldMap();
+    this.drawWorldMap(world);
     this.drawMapChrome();
   }
 
-  drawWorldMap() {
+  drawWorldMap(world = null) {
     const ctx = this.ctx;
     const playableIso = { canada:'CAN',usa:'USA',mexico:'MEX',brazil:'BRA',uk:'GBR',france:'FRA',germany:'DEU',poland:'POL',russia:'RUS',turkey:'TUR',egypt:'EGY',israel:'ISR',saudi:'SAU',iran:'IRN',india:'IND',china:'CHN',south_korea:'KOR',japan:'JPN',indonesia:'IDN',australia:'AUS' };
     const countryByIso = new Map(Object.entries(playableIso).map(([id,iso])=>[iso,id]));
     const worldFill = ctx.createLinearGradient(0,this.height*.12,this.width*.2,this.height*.88);
     worldFill.addColorStop(0,'#34576b');worldFill.addColorStop(.52,'#254558');worldFill.addColorStop(1,'#193447');
     for(const feature of WORLD_COUNTRIES.features){
-      const id=countryByIso.get(feature.properties.iso),fill=id?this.countryColor(id):worldFill;
+      const id=countryByIso.get(feature.properties.iso),controlled=world&&id?world.getCountry(id):null,fill=id?(controlled?.color||this.countryColor(id)):worldFill;
       ctx.beginPath();this.traceGeoGeometry(feature.geometry);ctx.fillStyle=fill;
       ctx.shadowColor='rgba(0,0,0,.24)';ctx.shadowBlur=id?7:3;ctx.fill();ctx.shadowBlur=0;
       ctx.strokeStyle=id?'rgba(157,207,222,.72)':'rgba(139,183,201,.36)';ctx.lineWidth=id?1.05:.72;ctx.stroke();
@@ -261,7 +261,7 @@ export class Renderer {
   }
 
   render(world){
-    this.time+=16;this.clear();
+    this.time+=16;this.clear(world);
     const countries=world.getAllCountries();
     for(const c of countries){
       for(const id of c.atWarWith){const other=world.getCountry(id);if(other&&c.id<id)this.drawConnection(c,other,'war');}
