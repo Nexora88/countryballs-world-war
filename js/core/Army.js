@@ -53,6 +53,9 @@ export class CombatSystem {
     const to = this.world.getCountry(toId);
     if (!from || !to) return null;
     if (fromId === toId) return null;
+    if (!this.world.areAdjacent(fromId, toId)) return null;
+    if (!this.world.getCountry(from.controllerId)) return null;
+    if (to.controllerId === from.controllerId) return null;
 
     // Can't send more than available
     const maxSend = Math.floor(from.military * 0.7); // leave some home defense
@@ -66,7 +69,7 @@ export class CombatSystem {
 
     const army = new Army({
       id: this.nextArmyId++,
-      ownerId: fromId,
+      ownerId: from.controllerId,
       strength: actual,
       fromId,
       toId
@@ -187,6 +190,7 @@ export class CombatSystem {
         // Chance of territory pressure (future: actual province system)
         if (Math.random() < 0.4) defender.economy = Math.max(15, defender.economy - 6);
         log.message = `${attacker.name} ezici zafer kazandı.`;
+        if (this.world.captureTerritory(attacker.id, defender.id)) log.message += ` ${defender.name} ele geçirildi!`;
         break;
 
       case 'attacker_win':
@@ -196,6 +200,7 @@ export class CombatSystem {
         attacker.modifyRelation(defender.id, -10);
         defender.modifyRelation(attacker.id, -18);
         log.message = `${attacker.name} zafer kazandı.`;
+        if (this.world.captureTerritory(attacker.id, defender.id)) log.message += ` ${defender.name} ele geçirildi!`;
         break;
 
       case 'pyrrhic':

@@ -60,7 +60,8 @@ export class EconomySystem {
    */
   dailyTick() {
     for (const country of this.world.getAllCountries()) {
-      // Base income from economy
+      // Territory income and recruitment flow to its current sovereign.
+      const controller = this.world.getCountry(country.controllerId || country.id) || country;
       let income = country.economy * 0.65;
 
       // Stability affects efficiency
@@ -69,13 +70,16 @@ export class EconomySystem {
       // War is expensive
       if (country.atWarWith.size > 0) {
         income *= 0.75;
-        country.gold -= country.atWarWith.size * 3; // war upkeep
+        controller.gold -= country.atWarWith.size * 3; // war upkeep
       }
 
       // Tech slightly boosts everything
       income *= (1 + country.tech * 0.015);
 
-      country.gold += income;
+      controller.gold += income;
+      controller.manpower = Math.min(9999, controller.manpower + country.economy * 0.018);
+      // Each controlled territory maintains a small local recruitment pipeline.
+      country.military = Math.min(200, country.military + 0.12 + country.economy * 0.002);
 
       // Soft decay if overextended
       if (country.military > 90 && country.economy < 50) {
@@ -95,7 +99,8 @@ export class EconomySystem {
     if (up.requirement && !up.requirement(country)) return false;
 
     const cost = this.getCost(country, upgradeId);
-    return country.gold >= cost;
+    const treasury = this.world.getCountry(country.controllerId || country.id) || country;
+    return treasury.gold >= cost;
   }
 
   getCost(country, upgradeId) {
@@ -116,8 +121,9 @@ export class EconomySystem {
 
     const up = UPGRADES[upgradeId];
     const cost = this.getCost(country, upgradeId);
+    const treasury = this.world.getCountry(country.controllerId || country.id) || country;
 
-    country.gold -= cost;
+    treasury.gold -= cost;
     up.effect(country);
 
     // Small stability boost from successful investment (feeling of progress)

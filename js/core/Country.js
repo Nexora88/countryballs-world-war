@@ -9,6 +9,9 @@ import { getCharacter, getGovernment } from '../data/countries.js';
 export class Country {
   constructor(data) {
     this.id = data.id;
+    this.controllerId = data.id; // sovereign controller; changes when territory is conquered
+    this.originalOwnerId = data.id;
+    this.territoryLevel = 1;
     this.name = data.name;
     this.short = data.short;
     this.flagColors = data.flagColors;
@@ -133,9 +136,6 @@ export class Country {
       this.stability = Math.min(100, this.stability + 0.002 * dt);
     }
 
-    // Economy generates gold
-    this.gold += (this.economy / 100) * 0.8 * dt;
-
     // Pulse animation
     this.pulse += dt * 0.003;
   }
@@ -145,6 +145,9 @@ export class Country {
   toJSON() {
     return {
       id: this.id,
+      controllerId: this.controllerId,
+      originalOwnerId: this.originalOwnerId,
+      territoryLevel: this.territoryLevel,
       military: this.military,
       economy: this.economy,
       stability: this.stability,

@@ -165,7 +165,7 @@ function openSidePanel(country) {
   document.getElementById('stat-tech').style.width = Math.min(100, country.tech * 8) + '%';
 
   const player = world.getPlayer();
-  const isPlayer = country.isPlayer;
+  const isPlayer = player && country.controllerId === player.id;
   const isEnemy = player && player.isAtWarWith(country.id);
   const isAlly = player && player.isAlliedWith(country.id);
 
@@ -194,6 +194,16 @@ function openSidePanel(country) {
       };
       diplo.appendChild(btn);
     }
+    const territoryInfo = document.createElement('div');
+    territoryInfo.style.cssText = 'font-size:0.82rem;color:var(--text-secondary);margin:8px 0';
+    territoryInfo.textContent = `Yönetilen bölge • Seviye ${country.territoryLevel || 1} • Yerel asker: ${Math.floor(country.military)}`;
+    mili.appendChild(territoryInfo);
+    addBtn(mili, 'Bu bölgede 10 asker üret (12◈)', () => {
+      if (world.recruit(player.id, country.id, 10)) {
+        audio.positive(); notify(`${country.name}: 10 asker üretildi.`);
+      } else notify('Üretim için yeterli altın veya insan gücü yok.');
+      openSidePanel(country);
+    });
     if (country.nuclear) {
       const info = document.createElement('div');
       info.style.cssText = 'color:var(--warning);font-size:0.85rem;margin-top:8px';
@@ -266,7 +276,8 @@ function openSidePanel(country) {
     mili.appendChild(info);
 
     addBtn(mili, 'Takviye Gönder', () => {
-      const army = world.combat.sendArmy(player.id, country.id, 0.3);
+      const source = world.getControlledTerritories(player.id).find(t => world.areAdjacent(t.id, country.id) && t.military >= 10);
+      const army = source ? world.combat.sendArmy(source.id, country.id, 0.3) : null;
       if (army) {
         audio.war();
         notify(`Takviye yola çıktı (${Math.floor(army.strength)} güç).`);
@@ -301,9 +312,11 @@ function openSidePanel(country) {
       }, true);
     }
   } else {
-    addBtn(mili, 'Savaş İlan Et + Ordu Gönder', () => {
+    addBtn(mili, 'Komşu bölgeden saldır + savaş ilan et', () => {
+      const source = world.getControlledTerritories(player.id).find(t => world.areAdjacent(t.id, country.id) && t.military >= 10);
+      if (!source) { notify('Bu ülkeye kara/deniz komşuluğun yok veya sınırda yeterli asker bulunmuyor.'); return; }
       world.declareWar(player.id, country.id);
-      world.combat.sendArmy(player.id, country.id, 0.4);
+      world.combat.sendArmy(source.id, country.id, 0.4);
       country.expression = 'angry';
       player.expression = 'angry';
       audio.war();
