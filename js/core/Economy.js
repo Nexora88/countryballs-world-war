@@ -99,7 +99,8 @@ export class EconomySystem {
     if (up.requirement && !up.requirement(country)) return false;
 
     const cost = this.getCost(country, upgradeId);
-    return country.gold >= cost;
+    const treasury = this.world.getCountry(country.controllerId || country.id) || country;
+    return treasury.gold >= cost;
   }
 
   getCost(country, upgradeId) {
@@ -120,8 +121,9 @@ export class EconomySystem {
 
     const up = UPGRADES[upgradeId];
     const cost = this.getCost(country, upgradeId);
+    const treasury = this.world.getCountry(country.controllerId || country.id) || country;
 
-    country.gold -= cost;
+    treasury.gold -= cost;
     up.effect(country);
 
     // Small stability boost from successful investment (feeling of progress)
