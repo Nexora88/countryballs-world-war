@@ -1,4 +1,5 @@
 import { COUNTRIES } from '../data/countries.js';
+import { areCountriesAdjacent, getAdjacentCountries } from '../data/adjacency.js';
 import { Country } from './Country.js';
 import { CombatSystem } from './Army.js';
 import { AIController } from './AI.js';
@@ -92,6 +93,46 @@ export class World {
   getPlayer() { return this.countries.get(this.playerId); }
   getCountry(id) { return this.countries.get(id); }
   getAllCountries() { return [...this.countries.values()]; }
+
+  areAdjacent(aId, bId) { return areCountriesAdjacent(aId, bId); }
+  getNeighbors(countryId) { return getAdjacentCountries(countryId); }
+  getControlledTerritories(controllerId) {
+    return this.getAllCountries().filter(c => c.controllerId === controllerId);
+  }
+
+  captureTerritory(attackerId, territoryId) {
+    const attacker = this.getCountry(attackerId);
+    const territory = this.getCountry(territoryId);
+    if (!attacker || !territory || attackerId === territoryId) return false;
+    if (territory.controllerId === attackerId) return false;
+    const previousController = this.getCountry(territory.controllerId);
+    if (previousController) {
+      previousController.stability = Math.max(10, previousController.stability - 12);
+      previousController.modifyRelation(attackerId, -25);
+    }
+    territory.controllerId = attackerId;
+    territory.territoryLevel = Math.max(1, territory.territoryLevel || 1);
+    territory.stability = Math.max(25, territory.stability - 18);
+    territory.military = Math.max(8, territory.military * 0.35);
+    territory.color = attacker.color;
+    attacker.gold += 35;
+    attacker.stability = Math.max(0, attacker.stability - 3);
+    attacker.expression = 'smug';
+    territory.expression = 'worried';
+    return true;
+  }
+
+  recruit(controllerId, territoryId, amount = 10) {
+    const controller = this.getCountry(controllerId);
+    const territory = this.getCountry(territoryId);
+    const cost = Math.ceil(amount * 1.2);
+    if (!controller || !territory || territory.controllerId !== controllerId) return false;
+    if (controller.gold < cost || controller.manpower < amount * 0.5) return false;
+    controller.gold -= cost;
+    controller.manpower -= amount * 0.5;
+    territory.military = Math.min(200, territory.military + amount);
+    return true;
+  }
 
   setSpeed(speed) {
     this.speed = Math.max(0, Math.min(3, speed));
