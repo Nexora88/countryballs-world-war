@@ -40,6 +40,8 @@ export class ProvinceSystem {
     if (!attacker || !source || !target || source.ownerId !== attackerId) return { ok:false, reason:'invalid-source' };
     if (!this.areAdjacent(sourceRegionId, targetRegionId)) return { ok:false, reason:'not-adjacent' };
     if (target.ownerId === attackerId) return { ok:false, reason:'already-owned' };
+    if (source.troops < 8) return { ok:false, reason:'insufficient-troops' };
+    this.world.declareWar(attackerId, target.ownerId);
     return this.resolveRegionBattle(attackerId, source, target, source.troops);
   }
 
@@ -53,6 +55,7 @@ export class ProvinceSystem {
     const committed = Math.floor(attacker.military * 0.3);
     if (committed < 8) return { ok:false, reason:'insufficient-troops' };
     attacker.military -= committed;
+    this.world.declareWar(attackerId, 'turkey');
     return this.resolveRegionBattle(attackerId, null, target, committed);
   }
 
@@ -87,6 +90,8 @@ export class ProvinceSystem {
     if (!targetRegion || city.ownerId === attackerId || !this.areAdjacent(sourceRegionId, targetRegion.id)) {
       return { ok:false, reason:'city-not-reachable' };
     }
+    if (source.troops < 5) return { ok:false, reason:'insufficient-troops' };
+    this.world.declareWar(attackerId, city.ownerId);
     const attackPower = source.troops * (0.9 + attacker.tech * 0.03);
     const defensePower = city.garrison * (city.capital ? 1.5 : 1.1);
     if (attackPower <= defensePower) {
@@ -117,7 +122,7 @@ export class ProvinceSystem {
 
   tick() {
     for (const region of this.regions.values()) {
-      if (region.ownerId === 'turkey' && region.troops < 80) region.troops += 0.08;
+      if (region.troops < 80) region.troops += 0.08;
     }
   }
 
